@@ -1,0 +1,766 @@
+{
+  "info": {
+    "name": "ptk-enterprise-api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "ptk-enterprise-api-v1"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8002", "type": "string" },
+    { "key": "admin_key", "value": "", "type": "string" },
+    { "key": "scan_key", "value": "", "type": "string" },
+    { "key": "client_id", "value": "", "type": "string" },
+    { "key": "project_id", "value": "", "type": "string" },
+    { "key": "asset_id", "value": "", "type": "string" },
+    { "key": "scan_id_1", "value": "", "type": "string" },
+    { "key": "scan_id_2", "value": "", "type": "string" },
+    { "key": "scan_id_3", "value": "", "type": "string" },
+    { "key": "idem_scan_id", "value": "", "type": "string" },
+    { "key": "bootstrap_secret", "value": "test-bootstrap-secret", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Bootstrap",
+      "item": [
+        {
+          "name": "01 Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "02 Ready check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/ready", "host": ["{{base_url}}"], "path": ["ready"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "pm.test('ready', () => pm.expect(pm.response.json().status).to.eql('ready'));"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "03 Version",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/version", "host": ["{{base_url}}"], "path": ["version"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('has version', () => pm.expect(pm.response.json().version).to.eql('1.0.0'));"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "04 Create admin client (bootstrap)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{bootstrap_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"company_name\":\"Acme Security\",\"contact_email\":\"admin@acme-security.com\",\"tier\":\"pro\"}"
+            },
+            "url": { "raw": "{{base_url}}/v1/admin/clients", "host": ["{{base_url}}"], "path": ["v1","admin","clients"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('has client id', () => {",
+              "  const id = pm.response.json().data.id;",
+              "  pm.expect(id).to.be.a('string');",
+              "  pm.collectionVariables.set('client_id', id);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "05 Issue admin API key (bootstrap)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{bootstrap_secret}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"label\":\"admin-key\",\"scopes\":[\"admin\"],\"rate_limit_rpm\":120}"
+            },
+            "url": { "raw": "{{base_url}}/v1/admin/clients/{{client_id}}/keys", "host": ["{{base_url}}"], "path": ["v1","admin","clients","{{client_id}}","keys"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('has plaintext_key', () => {",
+              "  const key = pm.response.json().data.plaintext_key;",
+              "  pm.expect(key).to.match(/^sk_live_/);",
+              "  pm.collectionVariables.set('admin_key', key);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "06 Issue scan API key (admin auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"label\":\"scan-key\",\"scopes\":[\"scan:write\",\"scan:read\",\"usage:read\"],\"rate_limit_rpm\":60}"
+            },
+            "url": { "raw": "{{base_url}}/v1/admin/clients/{{client_id}}/keys", "host": ["{{base_url}}"], "path": ["v1","admin","clients","{{client_id}}","keys"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('has plaintext_key', () => {",
+              "  const key = pm.response.json().data.plaintext_key;",
+              "  pm.expect(key).to.match(/^sk_live_/);",
+              "  pm.collectionVariables.set('scan_key', key);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "07 List clients",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/admin/clients", "host": ["{{base_url}}"], "path": ["v1","admin","clients"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));",
+              "pm.test('meta.total >= 1', () => pm.expect(pm.response.json().meta.total).to.be.at.least(1));"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "08 Get client by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{admin_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/admin/clients/{{client_id}}", "host": ["{{base_url}}"], "path": ["v1","admin","clients","{{client_id}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('id matches', () => pm.expect(pm.response.json().data.id).to.eql(pm.collectionVariables.get('client_id')));"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "09 Scope rejection — scan key on admin endpoint",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/admin/clients", "host": ["{{base_url}}"], "path": ["v1","admin","clients"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('403 INSUFFICIENT_SCOPE', () => {",
+              "  pm.response.to.have.status(403);",
+              "  pm.expect(pm.response.json().error.code).to.eql('INSUFFICIENT_SCOPE');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "10 Invalid API key",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer sk_live_invalidkeyvalue" }],
+            "url": { "raw": "{{base_url}}/v1/admin/clients", "host": ["{{base_url}}"], "path": ["v1","admin","clients"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('401 INVALID_API_KEY', () => {",
+              "  pm.response.to.have.status(401);",
+              "  pm.expect(pm.response.json().error.code).to.eql('INVALID_API_KEY');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "11 Create project",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{scan_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Production\",\"description\":\"Main production environment\"}"
+            },
+            "url": { "raw": "{{base_url}}/v1/projects", "host": ["{{base_url}}"], "path": ["v1","projects"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 with id', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const id = pm.response.json().data.id;",
+              "  pm.expect(id).to.be.a('string');",
+              "  pm.collectionVariables.set('project_id', id);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "12 List projects",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/projects", "host": ["{{base_url}}"], "path": ["v1","projects"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('data is array with project', () => {",
+              "  const data = pm.response.json().data;",
+              "  pm.expect(data).to.be.an('array');",
+              "  const ids = data.map(p => p.id);",
+              "  pm.expect(ids).to.include(pm.collectionVariables.get('project_id'));",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "13 Get project by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/projects/{{project_id}}", "host": ["{{base_url}}"], "path": ["v1","projects","{{project_id}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('name is Production', () => pm.expect(pm.response.json().data.name).to.eql('Production'));"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "14 Project not found",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/projects/00000000-0000-0000-0000-000000000000", "host": ["{{base_url}}"], "path": ["v1","projects","00000000-0000-0000-0000-000000000000"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('404 PROJECT_NOT_FOUND', () => {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().error.code).to.eql('PROJECT_NOT_FOUND');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Assets",
+      "item": [
+        {
+          "name": "15 Create asset",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{scan_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"value\":\"example.com\",\"asset_type\":\"domain\",\"project_id\":\"{{project_id}}\"}"
+            },
+            "url": { "raw": "{{base_url}}/v1/assets", "host": ["{{base_url}}"], "path": ["v1","assets"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 with id', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const id = pm.response.json().data.id;",
+              "  pm.expect(id).to.be.a('string');",
+              "  pm.collectionVariables.set('asset_id', id);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "16 List assets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/assets", "host": ["{{base_url}}"], "path": ["v1","assets"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('data is array with asset', () => {",
+              "  const data = pm.response.json().data;",
+              "  pm.expect(data).to.be.an('array');",
+              "  const ids = data.map(a => a.id);",
+              "  pm.expect(ids).to.include(pm.collectionVariables.get('asset_id'));",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "17 List assets filtered by project",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": {
+              "raw": "{{base_url}}/v1/assets?project_id={{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1","assets"],
+              "query": [{ "key": "project_id", "value": "{{project_id}}" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('all assets belong to project', () => {",
+              "  const data = pm.response.json().data;",
+              "  const pid = pm.collectionVariables.get('project_id');",
+              "  data.forEach(a => pm.expect(a.project_id).to.eql(pid));",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Scans",
+      "item": [
+        {
+          "name": "18 Submit scan (basic)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{scan_key}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"target\":\"example.com\"}" },
+            "url": { "raw": "{{base_url}}/v1/scans", "host": ["{{base_url}}"], "path": ["v1","scans"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 queued', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const d = pm.response.json().data;",
+              "  pm.expect(d.scan_id).to.be.a('string');",
+              "  pm.expect(d.status).to.eql('queued');",
+              "  pm.collectionVariables.set('scan_id_1', d.scan_id);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "19 Submit scan with project + asset",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{scan_key}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"target\":\"example.com\",\"project_id\":\"{{project_id}}\",\"asset_id\":\"{{asset_id}}\"}"
+            },
+            "url": { "raw": "{{base_url}}/v1/scans", "host": ["{{base_url}}"], "path": ["v1","scans"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 with project and asset', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const d = pm.response.json().data;",
+              "  pm.expect(d.project_id).to.eql(pm.collectionVariables.get('project_id'));",
+              "  pm.expect(d.asset_id).to.eql(pm.collectionVariables.get('asset_id'));",
+              "  pm.collectionVariables.set('scan_id_2', d.scan_id);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "20 Protocol stripping",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{scan_key}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"target\":\"https://example.org/path\"}" },
+            "url": { "raw": "{{base_url}}/v1/scans", "host": ["{{base_url}}"], "path": ["v1","scans"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('protocol stripped', () => {",
+              "  const d = pm.response.json().data;",
+              "  pm.expect(d.target).to.not.include('https://');",
+              "  pm.collectionVariables.set('scan_id_3', d.scan_id);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "21 Idempotency — first submit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{scan_key}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"target\":\"example.com\",\"idempotency_key\":\"idem-test-001\"}" },
+            "url": { "raw": "{{base_url}}/v1/scans", "host": ["{{base_url}}"], "path": ["v1","scans"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.collectionVariables.set('idem_scan_id', pm.response.json().data.scan_id);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "22 Idempotency — second submit returns same scan",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{scan_key}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"target\":\"example.com\",\"idempotency_key\":\"idem-test-001\"}" },
+            "url": { "raw": "{{base_url}}/v1/scans", "host": ["{{base_url}}"], "path": ["v1","scans"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 same scan_id', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().data.scan_id).to.eql(pm.collectionVariables.get('idem_scan_id'));",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "23 Poll scan status",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/scans/{{scan_id_1}}", "host": ["{{base_url}}"], "path": ["v1","scans","{{scan_id_1}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('valid status', () => {",
+              "  const status = pm.response.json().data.status;",
+              "  pm.expect(['queued','initializing','running','aggregating','completed','failed']).to.include(status);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "24 Get completed scan (poll manually)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/scans/{{scan_id_1}}", "host": ["{{base_url}}"], "path": ["v1","scans","{{scan_id_1}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('completed with findings', () => {",
+              "  const d = pm.response.json().data;",
+              "  pm.expect(d.status).to.eql('completed');",
+              "  pm.expect(d.summary.tools_run).to.be.an('array').with.length.greaterThan(0);",
+              "  pm.expect(d.findings).to.be.an('array');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "25 Scan response has findings and summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/scans/{{scan_id_1}}", "host": ["{{base_url}}"], "path": ["v1","scans","{{scan_id_1}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('summary fields present', () => {",
+              "  const s = pm.response.json().data.summary;",
+              "  pm.expect(s).to.have.property('total_findings');",
+              "  pm.expect(s).to.have.property('by_severity');",
+              "  pm.expect(s).to.have.property('tools_run');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "26 List scans",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": {
+              "raw": "{{base_url}}/v1/scans?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["v1","scans"],
+              "query": [{ "key": "limit", "value": "10" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('paginated list', () => {",
+              "  const r = pm.response.json();",
+              "  pm.expect(r.data).to.be.an('array');",
+              "  pm.expect(r.meta.limit).to.eql(10);",
+              "  pm.expect(r.meta.total).to.be.at.least(3);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "27 Scan not found",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/scans/00000000-0000-0000-0000-000000000000", "host": ["{{base_url}}"], "path": ["v1","scans","00000000-0000-0000-0000-000000000000"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('404 SCAN_NOT_FOUND', () => {",
+              "  pm.response.to.have.status(404);",
+              "  pm.expect(pm.response.json().error.code).to.eql('SCAN_NOT_FOUND');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "28 Delete scan",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/scans/{{scan_id_2}}", "host": ["{{base_url}}"], "path": ["v1","scans","{{scan_id_2}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('204 or 409', () => {",
+              "  pm.expect([204, 409]).to.include(pm.response.code);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Findings",
+      "item": [
+        {
+          "name": "29 List all findings",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/findings", "host": ["{{base_url}}"], "path": ["v1","findings"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));",
+              "pm.test('meta present', () => pm.expect(pm.response.json().meta).to.exist);"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "30 Filter findings by scan_id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?scan_id={{scan_id_1}}&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["v1","findings"],
+              "query": [
+                { "key": "scan_id", "value": "{{scan_id_1}}" },
+                { "key": "limit", "value": "5" }
+              ]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('all findings match scan_id', () => {",
+              "  const data = pm.response.json().data;",
+              "  const sid = pm.collectionVariables.get('scan_id_1');",
+              "  data.forEach(f => pm.expect(f.scan_id).to.eql(sid));",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "31 Filter findings by severity=high",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?severity=high",
+              "host": ["{{base_url}}"],
+              "path": ["v1","findings"],
+              "query": [{ "key": "severity", "value": "high" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('all findings are high severity', () => {",
+              "  const data = pm.response.json().data;",
+              "  data.forEach(f => pm.expect(f.severity).to.eql('high'));",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Usage",
+      "item": [
+        {
+          "name": "32 Usage summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": { "raw": "{{base_url}}/v1/usage", "host": ["{{base_url}}"], "path": ["v1","usage"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('total_scans >= 3', () => {",
+              "  pm.expect(pm.response.json().data.total_scans).to.be.at.least(3);",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "33 Usage events",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": {
+              "raw": "{{base_url}}/v1/usage/events?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["v1","usage","events"],
+              "query": [{ "key": "limit", "value": "20" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('has scan_submitted events', () => {",
+              "  const types = pm.response.json().data.map(e => e.event_type);",
+              "  pm.expect(types).to.include('scan_submitted');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "34 Report — non-completed scan (expect REPORT_NOT_READY)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id_3}}/report?format=html",
+              "host": ["{{base_url}}"],
+              "path": ["v1","scans","{{scan_id_3}}","report"],
+              "query": [{ "key": "format", "value": "html" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('REPORT_NOT_READY or completed with url', () => {",
+              "  const r = pm.response.json();",
+              "  if (r.error) {",
+              "    pm.expect(r.error.code).to.eql('REPORT_NOT_READY');",
+              "  } else {",
+              "    pm.expect(r.data.url).to.be.a('string');",
+              "  }",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        },
+        {
+          "name": "35 Report — completed scan (HTML)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{scan_key}}" }],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id_1}}/report?format=html",
+              "host": ["{{base_url}}"],
+              "path": ["v1","scans","{{scan_id_1}}","report"],
+              "query": [{ "key": "format", "value": "html" }]
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('url present and format=html', () => {",
+              "  const d = pm.response.json().data;",
+              "  pm.expect(d.url).to.be.a('string');",
+              "  pm.expect(d.format).to.eql('html');",
+              "  pm.expect(d.size_bytes).to.be.a('number');",
+              "});"
+            ], "type": "text/javascript" }
+          }]
+        }
+      ]
+    }
+  ]
+}
