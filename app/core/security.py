@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 def generate_api_key() -> str:
-    """Generate a new API key: sk_live_<16 random hex chars>."""
-    return f"sk_live_{secrets.token_hex(8)}"
+    """Generate a new API key: ptk_live_<43 random base64url chars>."""
+    return f"ptk_live_{secrets.token_urlsafe(32)}"
 
 
 def hash_api_key(key: str) -> str:
@@ -25,8 +25,8 @@ def verify_api_key(plain_key: str, stored_hash: str) -> bool:
 
 
 def get_key_prefix(key: str) -> str:
-    """Return first 10 chars of the key for display/identification."""
-    return key[:10]
+    """Return first 14 chars of the key for display/identification (ptk_live_XXXXX)."""
+    return key[:14]
 
 
 def require_scope(*required_scopes: str):

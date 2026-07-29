@@ -10,6 +10,9 @@ from app.models.scan_report import ScanReport
 from app.models.usage_event import UsageEvent
 from app.models.audit_log import AuditLog
 from app.models.api_log import ApiLog
+from app.models.admin_user import AdminUser
+from app.models.admin_otp import AdminOtp
+from app.models.admin_session import AdminSession
 
 __all__ = [
     "Client",
@@ -24,4 +27,7 @@ __all__ = [
     "UsageEvent",
     "AuditLog",
     "ApiLog",
+    "AdminUser",
+    "AdminOtp",
+    "AdminSession",
 ]

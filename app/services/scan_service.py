@@ -1,13 +1,15 @@
 import logging
 import re
-from datetime import timezone
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 
 from app.models.scan_job import ScanJob
 from app.models.project import Project
 from app.models.asset import Asset
 from app.models.finding import Finding
+from app.models.api_key import ApiKey
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,25 @@ def create_scan(
         if existing:
             return existing, False
 
+    # Monthly quota enforcement — only applies when api_key_id is set and key has a quota
+    if api_key_id:
+        api_key = db.get(ApiKey, api_key_id)
+        if api_key and api_key.scan_quota_per_month is not None:
+            now = datetime.now(timezone.utc)
+            month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            scans_this_month = db.execute(
+                select(func.count()).select_from(ScanJob).where(
+                    ScanJob.api_key_id == api_key_id,
+                    ScanJob.created_at >= month_start,
+                )
+            ).scalar_one()
+            if scans_this_month >= api_key.scan_quota_per_month:
+                logger.warning(
+                    "Scan quota exceeded for api_key_id=%s client=%s quota=%d used=%d",
+                    api_key_id, client_id, api_key.scan_quota_per_month, scans_this_month,
+                )
+                raise ValueError("SCAN_QUOTA_EXCEEDED")
+
     # Validate project belongs to this client
     if project_id:
         project = db.execute(
@@ -81,7 +102,21 @@ def create_scan(
         status="queued",
     )
     db.add(scan)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        # Race condition or cross-client key collision — re-fetch and return existing
+        if idempotency_key:
+            existing = db.execute(
+                select(ScanJob).where(
+                    ScanJob.client_id == client_id,
+                    ScanJob.idempotency_key == idempotency_key,
+                )
+            ).scalar_one_or_none()
+            if existing:
+                return existing, False
+        raise
     db.refresh(scan)
     logger.info("Scan created id=%s target=%s client=%s", scan.id, stored_target, client_id)
     return scan, True

@@ -15,6 +15,7 @@ def create_api_key(
     scopes: list[str] | None = None,
     rate_limit_rpm: int = 60,
     expires_at: datetime | None = None,
+    scan_quota_per_month: int | None = None,
 ) -> tuple[ApiKey, str]:
     """
     Generate a new API key for a client.
@@ -36,6 +37,7 @@ def create_api_key(
         scopes=scopes,
         rate_limit_rpm=rate_limit_rpm,
         expires_at=expires_at,
+        scan_quota_per_month=scan_quota_per_month,
     )
     db.add(api_key)
     db.commit()
@@ -66,7 +68,7 @@ def verify_api_key(db: Session, raw_key: str) -> ApiKey | None:
 
         if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
             logger.warning("Rejected expired key prefix=%s", api_key.key_prefix)
-            return None
+            raise ValueError("EXPIRED_API_KEY")
 
         api_key.last_used_at = datetime.now(timezone.utc)
         db.commit()

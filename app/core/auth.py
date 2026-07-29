@@ -42,11 +42,16 @@ async def get_api_key(request: Request, db: Session = Depends(get_db)) -> ApiKey
 
     # Pre-verify coarse rate limit keyed on key prefix (no DB needed yet).
     # Prevents timing-based enumeration. Limit set to 2× max real limit.
-    key_prefix_bucket = f"pre:{raw_key[:10]}"
+    # Use 16 chars so the bucket is unique per key, not shared across the common ptk_live_ prefix
+    key_prefix_bucket = f"pre:{raw_key[:16]}"
     if not check_rate_limit(key_prefix_bucket, 120):
         raise AuthError(error_response("RATE_LIMIT_EXCEEDED", request_id))
 
-    api_key = await asyncio.to_thread(_verify, db, raw_key)
+    try:
+        api_key = await asyncio.to_thread(_verify, db, raw_key)
+    except ValueError as exc:
+        code = str(exc)
+        raise AuthError(error_response(code if code in ("EXPIRED_API_KEY",) else "INVALID_API_KEY", request_id))
 
     if api_key is None:
         raise AuthError(error_response("INVALID_API_KEY", request_id))

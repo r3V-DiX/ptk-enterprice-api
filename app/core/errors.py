@@ -16,6 +16,11 @@ ERROR_MESSAGES = {
     "ASSET_NOT_FOUND": (404, "The requested asset was not found."),
     "KEY_NOT_FOUND": (404, "The requested API key was not found."),
     "REPORT_NOT_READY": (409, "The scan must be completed before a report can be generated."),
+    "SCAN_QUOTA_EXCEEDED": (429, "Monthly scan quota for this API key has been reached."),
+    "ADMIN_AUTH_REQUIRED": (401, "Admin authentication required."),
+    "INVALID_CODE": (401, "Invalid or expired OTP code."),
+    "EMAIL_NOT_ALLOWED": (403, "This email is not authorised for admin access."),
+    "TOO_MANY_REQUESTS": (429, "Too many requests. Please wait and try again."),
 }
 
 

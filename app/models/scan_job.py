@@ -1,12 +1,15 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, DateTime, JSON, ForeignKey
+from sqlalchemy import String, Text, DateTime, JSON, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
 class ScanJob(Base):
     __tablename__ = "scan_jobs"
+    __table_args__ = (
+        UniqueConstraint("client_id", "idempotency_key", name="uq_scan_jobs_client_idempotency"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     client_id: Mapped[str] = mapped_column(String(36), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
@@ -17,7 +20,7 @@ class ScanJob(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="queued")
     tools_requested: Mapped[list | None] = mapped_column(JSON, nullable=True)
     tools_run: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

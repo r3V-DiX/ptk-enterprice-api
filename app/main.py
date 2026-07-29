@@ -22,7 +22,7 @@ app.add_middleware(ApiLoggerMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.CORS_ORIGINS + settings.ADMIN_PORTAL_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,18 +40,24 @@ async def scope_error_handler(request: Request, exc: ScopeError):
 
 
 # Routers
-from app.api.v1 import admin as admin_router      # noqa: E402
-from app.api.v1 import scans as scans_router      # noqa: E402
-from app.api.v1 import findings as findings_router  # noqa: E402
-from app.api.v1 import projects as projects_router  # noqa: E402
-from app.api.v1 import assets as assets_router    # noqa: E402
-from app.api.v1 import usage as usage_router      # noqa: E402
+from app.api.v1 import admin as admin_router                    # noqa: E402
+from app.api.v1 import scans as scans_router                    # noqa: E402
+from app.api.v1 import findings as findings_router              # noqa: E402
+from app.api.v1 import projects as projects_router              # noqa: E402
+from app.api.v1 import assets as assets_router                  # noqa: E402
+from app.api.v1 import usage as usage_router                    # noqa: E402
+from app.api.v1 import internal_auth as internal_auth_router    # noqa: E402
+from app.api.v1 import internal as internal_router              # noqa: E402
+from app.api.v1 import internal_logs as internal_logs_router    # noqa: E402
 app.include_router(admin_router.router, prefix="/v1")
 app.include_router(scans_router.router, prefix="/v1")
 app.include_router(findings_router.router, prefix="/v1")
 app.include_router(projects_router.router, prefix="/v1")
 app.include_router(assets_router.router, prefix="/v1")
 app.include_router(usage_router.router, prefix="/v1")
+app.include_router(internal_auth_router.router, prefix="/v1")
+app.include_router(internal_router.router, prefix="/v1")
+app.include_router(internal_logs_router.router, prefix="/v1")
 
 
 @app.get("/health")

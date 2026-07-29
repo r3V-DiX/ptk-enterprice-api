@@ -1,0 +1,16 @@
+Terminal 1 — Worker (actually runs scans):
+
+
+cd /home/akshay/Documents/ptk-enterprise-api
+celery -A app.tasks.celery_config.celery_app worker --queues=enterprise_scans --loglevel=info
+Terminal 2 — Beat (runs the reaper every 5 min):
+
+
+cd /home/akshay/Documents/ptk-enterprise-api
+celery -A app.tasks.celery_config.celery_app beat --loglevel=info
+Terminal 3 — API server:
+
+
+cd /home/akshay/Documents/ptk-enterprise-api
+uvicorn app.main:app --host 0.0.0.0 --port 8002
+So 3 processes total. Redis must be running too (redis-cli ping should return PONG).

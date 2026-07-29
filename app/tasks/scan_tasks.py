@@ -30,11 +30,10 @@ def run_scan(self, scan_id: str):
 
         # Idempotency: skip if already progressed past queued
         if scan.status != "queued":
-            logger.info(
-                "run_scan: scan %s already in status %s, skipping", scan_id, scan.status
-            )
+            logger.info("run_scan: scan %s already %s, skipping", scan_id, scan.status)
             return
 
+        logger.info("━━━ SCAN START  id=%s  target=%s", scan_id[:8], scan.target)
         try:
             scan.status = "running"
             scan.started_at = datetime.now(timezone.utc)
@@ -49,22 +48,28 @@ def run_scan(self, scan_id: str):
             tool_errors = {}
 
             for plugin in plugins:
+                logger.info("[%s] ▶ running plugin: %s", scan.target, plugin.meta.id)
                 try:
                     result = plugin.run(target=scan.target, options={})
                     tools_run.append(plugin.meta.id)
                     if result.error:
                         tool_errors[plugin.meta.id] = result.error
                         logger.warning(
-                            "Plugin %s error on %s: %s",
-                            plugin.meta.id, scan.target, result.error,
+                            "[%s] ✗ plugin %s error: %s",
+                            scan.target, plugin.meta.id, result.error,
                         )
                     else:
+                        findings_count = len(result.findings)
                         for f in result.findings:
                             f["tool"] = plugin.meta.id
                         all_findings.extend(result.findings)
+                        logger.info(
+                            "[%s] ✓ plugin %s done — %d finding(s)",
+                            scan.target, plugin.meta.id, findings_count,
+                        )
                 except Exception as exc:
                     tool_errors[plugin.meta.id] = str(exc)
-                    logger.warning("Plugin %s raised unexpectedly: %s", plugin.meta.id, exc)
+                    logger.warning("[%s] ✗ plugin %s raised: %s", scan.target, plugin.meta.id, exc)
 
             # Aggregate phase
             scan.status = "aggregating"
@@ -118,12 +123,12 @@ def run_scan(self, scan_id: str):
             )
 
             logger.info(
-                "run_scan complete for %s: %d findings, tools=%s",
-                scan_id, len(all_findings), tools_run,
+                "━━━ SCAN DONE   id=%s  target=%s  findings=%d  tools=%s",
+                scan_id[:8], scan.target, len(all_findings), tools_run,
             )
 
         except Exception as exc:
-            logger.error("run_scan failed for %s: %s", scan_id, exc)
+            logger.error("━━━ SCAN FAILED id=%s  target=%s  error=%s", scan_id[:8], scan.target, exc)
             try:
                 scan.status = "failed"
                 scan.error = str(exc)

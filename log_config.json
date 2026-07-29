@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "default": {
+      "format": "[%(asctime)s] %(levelname)-8s %(name)s  %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    },
+    "access": {
+      "format": "[%(asctime)s] ACCESS   %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "default",
+      "stream": "ext://sys.stdout"
+    },
+    "access_console": {
+      "class": "logging.StreamHandler",
+      "formatter": "access",
+      "stream": "ext://sys.stdout"
+    }
+  },
+  "loggers": {
+    "uvicorn":          { "handlers": ["console"],        "level": "INFO",    "propagate": false },
+    "uvicorn.error":    { "handlers": ["console"],        "level": "INFO",    "propagate": false },
+    "uvicorn.access":   { "handlers": ["access_console"], "level": "INFO",    "propagate": false },
+    "fastapi":          { "handlers": ["console"],        "level": "INFO",    "propagate": false },
+    "app":              { "handlers": ["console"],        "level": "INFO",    "propagate": false },
+    "urllib3":          { "handlers": ["console"],        "level": "ERROR",   "propagate": false },
+    "httpx":            { "handlers": ["console"],        "level": "WARNING", "propagate": false }
+  },
+  "root": {
+    "handlers": ["console"],
+    "level": "INFO"
+  }
+}

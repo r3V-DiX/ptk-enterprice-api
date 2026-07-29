@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -46,7 +46,7 @@ async def submit_scan(
         )
     except ValueError as exc:
         error_code = str(exc)
-        if error_code in ("PROJECT_NOT_FOUND", "ASSET_NOT_FOUND"):
+        if error_code in ("PROJECT_NOT_FOUND", "ASSET_NOT_FOUND", "SCAN_QUOTA_EXCEEDED"):
             return error_response(error_code, request_id)
         logger.error("Unexpected error in create_scan: %s", exc)
         return error_response("INTERNAL_ERROR", request_id)
@@ -148,7 +148,7 @@ async def delete_scan_endpoint(
         request_id=request_id,
     )
 
-    return JSONResponse(status_code=204, content=None)
+    return Response(status_code=204)
 
 
 @router.get("/scans/{scan_id}/report")

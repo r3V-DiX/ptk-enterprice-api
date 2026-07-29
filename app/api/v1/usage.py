@@ -21,8 +21,36 @@ async def get_usage(
     db: Session = Depends(get_db),
     api_key: ApiKey = require_scope("usage:read"),
 ):
+    from datetime import datetime, timezone
+    from sqlalchemy import select, func
+    from app.models.scan_job import ScanJob
+
     request_id = get_request_id(request)
     summary = get_usage_summary(db, client_id=api_key.client_id)
+
+    # Append per-key quota info so the client knows how many scans remain this month
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    scans_this_month = db.execute(
+        select(func.count()).select_from(ScanJob).where(
+            ScanJob.api_key_id == api_key.id,
+            ScanJob.created_at >= month_start,
+        )
+    ).scalar_one()
+
+    quota = api_key.scan_quota_per_month
+    summary["quota"] = {
+        "scan_quota_per_month": quota,
+        "scans_used_this_month": scans_this_month,
+        "scans_remaining_this_month": (quota - scans_this_month) if quota is not None else None,
+        "quota_resets_at": now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            .replace(month=now.month % 12 + 1 if now.month < 12 else 1,
+                     year=now.year if now.month < 12 else now.year + 1).isoformat(),
+        "key_prefix": api_key.key_prefix,
+        "key_expires_at": api_key.expires_at.isoformat() if api_key.expires_at else None,
+        "rate_limit_rpm": api_key.rate_limit_rpm,
+    }
+
     return {"request_id": request_id, "data": summary}
 
 

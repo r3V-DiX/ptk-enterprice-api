@@ -1,0 +1,834 @@
+{
+  "info": {
+    "_postman_id": "ptk-enterprise-client-api-v2",
+    "name": "Pentoolkit — Client API",
+    "description": "## Getting Started\n\n1. Set `base_url` to the endpoint your account manager provided\n2. Set `api_key` to your key (never commit to source control)\n3. Run **Check Key + Get Quota** first — confirms your key is active and shows your monthly limit\n4. Use **Submit Scan** → poll **Get Scan Status** until `status = completed` → download the report\n\n## Authentication\nEvery request requires:\n```\nAuthorization: Bearer <your_api_key>\n```\n\n## Response Envelope\nAll successful responses wrap data in:\n```json\n{ \"request_id\": \"abc123\", \"data\": {...} }\n```\nList endpoints also include:\n```json\n{ \"meta\": { \"total\": 42, \"page\": 1, \"limit\": 20, \"offset\": 0 } }\n```\n\n## Error Envelope\n```json\n{\n  \"error\": {\n    \"code\": \"SCAN_NOT_FOUND\",\n    \"message\": \"The requested scan was not found.\",\n    \"request_id\": \"abc123\"\n  }\n}\n```\n\n## Error Codes\n| Code | HTTP | When it happens |\n|---|---|---|\n| `INVALID_API_KEY` | 401 | Key not found or revoked |\n| `EXPIRED_API_KEY` | 401 | Key past its expiry date |\n| `INSUFFICIENT_SCOPE` | 403 | Key lacks the required scope for this action |\n| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests per minute |\n| `SCAN_QUOTA_EXCEEDED` | 429 | Monthly scan quota exhausted |\n| `SCAN_NOT_FOUND` | 404 | Scan ID unknown or belongs to another client |\n| `REPORT_NOT_READY` | 409 | Scan must reach `completed` before a report can be generated |\n| `PROJECT_NOT_FOUND` | 404 | Project not found or belongs to another client |\n| `ASSET_NOT_FOUND` | 404 | Asset not found |\n| `TARGET_INVALID` | 422 | Target string is empty or malformed |\n| `INTERNAL_ERROR` | 500 | Unexpected server error — contact support with the `request_id` |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8002",
+      "description": "Base URL of the Pentoolkit API. No trailing slash. Provided by your account manager.",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "description": "Your API key. Treat like a password — never commit to source control.",
+      "type": "string"
+    },
+    {
+      "key": "scan_id",
+      "value": "",
+      "description": "Auto-populated by the Submit Scan test script.",
+      "type": "string"
+    },
+    {
+      "key": "project_id",
+      "value": "",
+      "description": "Auto-populated by the Create Project test script.",
+      "type": "string"
+    },
+    {
+      "key": "asset_id",
+      "value": "",
+      "description": "Auto-populated by the Register Asset test script.",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔑 Auth & Key Info",
+      "description": "Verify your API key and check your monthly quota before doing anything else.",
+      "item": [
+        {
+          "name": "Check Key + Get Quota",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/usage",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "usage"]
+            },
+            "description": "Verify your API key is active and retrieve your monthly scan quota.\n\nRequired scope: `usage:read`\n\n**Response fields:**\n- `quota.scan_quota_per_month` — total scans allowed per month (null = unlimited)\n- `quota.scans_used_this_month` — scans submitted since the 1st of this month\n- `quota.scans_remaining_this_month` — remaining budget (null if unlimited)\n- `quota.quota_resets_at` — ISO timestamp of when the counter resets\n- `quota.key_expires_at` — when this key expires (null = never)\n- `quota.rate_limit_rpm` — max requests per minute for this key"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Key is valid — status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has quota block', function () {",
+                  "    var body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('data');",
+                  "    pm.expect(body.data).to.have.property('quota');",
+                  "});",
+                  "var body = pm.response.json();",
+                  "if (body.data && body.data.quota) {",
+                  "    var q = body.data.quota;",
+                  "    console.log('Quota: ' + q.scans_used_this_month + ' used / ' +",
+                  "        (q.scan_quota_per_month !== null ? q.scan_quota_per_month : 'unlimited') + ' total');",
+                  "    console.log('Resets at: ' + q.quota_resets_at);",
+                  "    if (q.key_expires_at) console.log('Key expires: ' + q.key_expires_at);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Usage Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/usage/events?limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "usage", "events"],
+              "query": [
+                { "key": "limit", "value": "50", "description": "Max 200" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "Paginated log of all scan-related events for your account.\n\nRequired scope: `usage:read`\n\nEach event has an `event_type` (e.g. `scan_submitted`, `scan_completed`) and optional `metadata_json`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response has data array', function () {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔍 Scans",
+      "description": "Submit scans, poll for results, download reports.\n\n**Typical flow:**\n1. `POST /v1/scans` → get back `scan_id`\n2. `GET /v1/scans/{scan_id}` every 10–30s until `status = completed`\n3. `GET /v1/scans/{scan_id}/report?format=html` to download the report\n\n**Scan statuses:** `queued` → `initializing` → `running` → `aggregating` → `completed` | `failed`",
+      "item": [
+        {
+          "name": "Submit Scan",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target\": \"https://example.com\",\n  \"idempotency_key\": \"my-deploy-20260729-001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/scans",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans"]
+            },
+            "description": "Queue a new security scan against a target.\n\nRequired scope: `scan:write`\n\n**Request body:**\n- `target` *(required)* — URL, IP address, or hostname to scan (max 2048 chars)\n- `idempotency_key` *(optional, strongly recommended)* — unique string per scan job. Replaying the same key returns the existing scan as `200` instead of creating a duplicate. Use your deploy ID, commit SHA, or timestamp.\n- `project_id` *(optional)* — associate with a project\n- `asset_id` *(optional)* — associate with a registered asset\n\n**Returns:**\n- `201` — new scan queued\n- `200` — idempotency match, existing scan returned (no duplicate created)\n- `429 SCAN_QUOTA_EXCEEDED` — monthly quota exhausted"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Scan accepted (201 new or 200 replay)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var body = pm.response.json();",
+                  "if (body.data && body.data.scan_id) {",
+                  "    pm.collectionVariables.set('scan_id', body.data.scan_id);",
+                  "    console.log('scan_id set to: ' + body.data.scan_id);",
+                  "    console.log('Status: ' + body.data.status);",
+                  "    if (pm.response.code === 200) {",
+                  "        console.log('[IDEMPOTENCY] Existing scan returned — no duplicate created.');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Scans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans"],
+              "query": [
+                { "key": "limit", "value": "20", "description": "1–100" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "Paginated list of all scans for your account, newest first.\n\nRequired scope: `scan:read`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Has meta.total', function () {",
+                  "    pm.expect(pm.response.json().meta).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Scan Status + Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "{{scan_id}}"]
+            },
+            "description": "Retrieve the current status and full results of a scan.\n\nRequired scope: `scan:read`\n\nPoll every 10–30 seconds until `data.status` is `completed` or `failed`.\n\n**Response includes:**\n- `status` — current scan state\n- `summary.total_findings` — total number of findings\n- `summary.by_severity` — count per severity: `critical`, `high`, `medium`, `low`, `info`\n- `summary.tools_run` — which scanner tools ran\n- `summary.duration_seconds` — elapsed time\n- `findings` — full array with: `title`, `severity`, `tool`, `status`, `description`, `remediation`, `evidence`, `cvss_score`, `cwe_id`, `owasp_category`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "if (body.data) {",
+                  "    console.log('Scan status: ' + body.data.status);",
+                  "    if (body.data.summary) {",
+                  "        console.log('Findings: ' + body.data.summary.total_findings);",
+                  "        console.log('By severity: ' + JSON.stringify(body.data.summary.by_severity));",
+                  "    }",
+                  "    if (body.data.status === 'completed') {",
+                  "        console.log('Scan complete — you can now download the report.');",
+                  "    } else if (body.data.status === 'failed') {",
+                  "        console.log('Scan failed.');",
+                  "    } else {",
+                  "        console.log('Still running — poll again in 15s.');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download Report (HTML)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id}}/report?format=html",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "{{scan_id}}", "report"],
+              "query": [
+                { "key": "format", "value": "html", "description": "html or pdf" }
+              ]
+            },
+            "description": "Generate and retrieve the scan report as HTML.\n\nRequired scope: `scan:read`\n\nThe scan must be in `completed` status — otherwise returns `409 REPORT_NOT_READY`.\n\nTip: use **Send and Download** in Postman to save the file directly to disk."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 409) {",
+                  "    var body = pm.response.json();",
+                  "    if (body.error && body.error.code === 'REPORT_NOT_READY') {",
+                  "        console.log('Scan not yet complete — wait for status = completed.');",
+                  "    }",
+                  "} else {",
+                  "    pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download Report (PDF)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id}}/report?format=pdf",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "{{scan_id}}", "report"],
+              "query": [
+                { "key": "format", "value": "pdf" }
+              ]
+            },
+            "description": "Generate and retrieve the scan report as PDF.\n\nRequired scope: `scan:read`\n\nThe scan must be in `completed` status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 409) {",
+                  "    console.log('Scan not yet complete — cannot generate report.');",
+                  "} else {",
+                  "    pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Delete Scan",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "{{scan_id}}"]
+            },
+            "description": "Permanently delete a scan and all its findings.\n\nRequired scope: `scan:write`\n\nReturns `204 No Content` on success. This action is irreversible."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 — deleted', function () { pm.response.to.have.status(204); });",
+                  "if (pm.response.code === 204) {",
+                  "    pm.collectionVariables.set('scan_id', '');",
+                  "    console.log('Scan deleted. scan_id variable cleared.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🐛 Findings",
+      "description": "Query findings across all scans or filter to a specific scan. All findings are scoped to your account — you cannot access another client's data.",
+      "item": [
+        {
+          "name": "List All Findings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "findings"],
+              "query": [
+                { "key": "limit", "value": "20", "description": "1–100" },
+                { "key": "offset", "value": "0" },
+                { "key": "severity", "value": "critical", "description": "critical | high | medium | low | info", "disabled": true },
+                { "key": "tool", "value": "nmap", "description": "Filter by tool name", "disabled": true },
+                { "key": "status", "value": "open", "description": "open | in_progress | resolved | false_positive | accepted", "disabled": true },
+                { "key": "scan_id", "value": "{{scan_id}}", "description": "Filter to a specific scan", "disabled": true }
+              ]
+            },
+            "description": "List findings across all your scans, newest first.\n\nRequired scope: `scan:read`\n\n**Optional filters** (enable in the Params tab):\n- `severity` — one of: `critical`, `high`, `medium`, `low`, `info`\n- `tool` — filter by scanner tool name\n- `status` — one of: `open`, `in_progress`, `resolved`, `false_positive`, `accepted`\n- `scan_id` — restrict to one specific scan"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "console.log('Total findings: ' + (body.meta ? body.meta.total : 'unknown'));",
+                  "if (body.data && body.data.length > 0) {",
+                  "    console.log('First: ' + body.data[0].severity.toUpperCase() + ' — ' + body.data[0].title);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Critical Findings Only",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?severity=critical&limit=100&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "findings"],
+              "query": [
+                { "key": "severity", "value": "critical" },
+                { "key": "limit", "value": "100" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "Retrieve only critical-severity findings across all scans.\n\nRequired scope: `scan:read`\n\nThe `severity` filter accepts one value per request. For critical + high, make two requests and merge on your end."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "console.log('Critical findings: ' + (body.meta ? body.meta.total : body.data.length));",
+                  "body.data.forEach(function(f) {",
+                  "    console.log('  [CRITICAL] ' + f.title);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Findings for One Scan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?scan_id={{scan_id}}&limit=100&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "findings"],
+              "query": [
+                { "key": "scan_id", "value": "{{scan_id}}" },
+                { "key": "limit", "value": "100" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "Retrieve all findings for the scan in `{{scan_id}}`.\n\nRequired scope: `scan:read`\n\nNote: the same findings are also embedded in `GET /v1/scans/{scan_id}` under `data.findings`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "console.log('Findings for this scan: ' + (body.meta ? body.meta.total : body.data.length));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📁 Projects",
+      "description": "Projects are optional containers for organising scans (e.g. one project per engagement or application). Creating projects is not required — scans work fine without them.",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Q3 2026 External Pentest\",\n  \"description\": \"External attack surface assessment for Q3 2026\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/projects",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "projects"]
+            },
+            "description": "Create a new project for grouping related scans.\n\nRequired scope: `scan:write`\n\n**Request body:**\n- `name` *(required)* — project name\n- `description` *(optional)* — free-text description\n\nReturns `201`. The `id` is auto-saved to `{{project_id}}`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "var body = pm.response.json();",
+                  "if (body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('project_id', body.data.id);",
+                  "    console.log('project_id set to: ' + body.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/projects?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "projects"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "List all projects for your account, newest first.\n\nRequired scope: `scan:read`"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Get Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/projects/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "projects", "{{project_id}}"]
+            },
+            "description": "Retrieve a single project by ID.\n\nRequired scope: `scan:read`\n\nReturns `404 PROJECT_NOT_FOUND` if the project does not exist or belongs to a different client."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏷️ Assets",
+      "description": "Assets represent individual targets (domains, IPs, URLs) within a project. Registering assets before scanning lets you track findings per asset over time.",
+      "item": [
+        {
+          "name": "Register Asset",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"app.example.com\",\n  \"asset_type\": \"domain\",\n  \"project_id\": \"{{project_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/assets",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "assets"]
+            },
+            "description": "Register a target asset.\n\nRequired scope: `scan:write`\n\n**Request body:**\n- `value` *(required)* — the target, e.g. `app.example.com` or `192.168.1.1`\n- `asset_type` *(required)* — one of: `domain`, `ip`, `url`, `cidr`\n- `project_id` *(optional)* — associate with a project (must belong to your account)\n\nAfter creating an asset, pass its `id` as `asset_id` in Submit Scan to link findings back to it."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                  "var body = pm.response.json();",
+                  "if (body.data && body.data.id) {",
+                  "    pm.collectionVariables.set('asset_id', body.data.id);",
+                  "    console.log('asset_id set to: ' + body.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "List Assets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/assets?limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "assets"],
+              "query": [
+                { "key": "limit", "value": "50" },
+                { "key": "offset", "value": "0" },
+                { "key": "project_id", "value": "{{project_id}}", "description": "Filter by project", "disabled": true }
+              ]
+            },
+            "description": "List all registered assets for your account.\n\nRequired scope: `scan:read`\n\nEnable the `project_id` param to filter to one project."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⚡ Edge Cases",
+      "description": "Verify error handling, security boundaries, and idempotency. Run these before going live to confirm the API behaves correctly.",
+      "item": [
+        {
+          "name": "Invalid API Key → 401",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "ptk_invalid_key_xxxx_for_testing_only", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/usage",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "usage"]
+            },
+            "description": "Sends a hardcoded invalid API key.\n\nExpected: `401 INVALID_API_KEY`\n\nThis overrides the collection-level Bearer token for this one request only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Error code is INVALID_API_KEY', function () {",
+                  "    pm.expect(pm.response.json().error.code).to.equal('INVALID_API_KEY');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "No Authorization Header → 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/usage",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "usage"]
+            },
+            "description": "Sends the request with no Authorization header at all.\n\nExpected: `401` — confirms unauthenticated requests are rejected."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Error block present', function () {",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Idempotency Replay → 200 not 201",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target\": \"https://example.com\",\n  \"idempotency_key\": \"my-deploy-20260729-001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/scans",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans"]
+            },
+            "description": "Submit the same request a second time with the same `idempotency_key`.\n\nExpected: `200` (not `201`) — the existing scan is returned, no duplicate is created.\n\nRun **Submit Scan** first, then run this to confirm replay returns `200` with the same `scan_id`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 (idempotent replay, not 201)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var body = pm.response.json();",
+                  "var saved = pm.collectionVariables.get('scan_id');",
+                  "if (saved) {",
+                  "    pm.test('Returns same scan_id', function () {",
+                  "        pm.expect(body.data.scan_id).to.equal(saved);",
+                  "    });",
+                  "    console.log('Idempotency confirmed — same scan_id returned: ' + saved);",
+                  "} else {",
+                  "    console.log('scan_id variable not set — run Submit Scan first.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Report Before Scan Completes → 409",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id}}/report?format=html",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "{{scan_id}}", "report"],
+              "query": [{ "key": "format", "value": "html" }]
+            },
+            "description": "Request a report immediately after submitting a scan, before it reaches `completed`.\n\nExpected: `409 REPORT_NOT_READY`\n\nRun this right after **Submit Scan** while the scan is still `queued` or `running`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 409) {",
+                  "    pm.test('REPORT_NOT_READY returned correctly', function () {",
+                  "        pm.expect(pm.response.json().error.code).to.equal('REPORT_NOT_READY');",
+                  "    });",
+                  "    console.log('Correct — scan must complete before report is available.');",
+                  "} else if (pm.response.code === 200) {",
+                  "    console.log('Scan was already complete — try again with a freshly submitted scan.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Scan Not Found → 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "00000000-0000-0000-0000-000000000000"]
+            },
+            "description": "Request a scan using a nil UUID.\n\nExpected: `404 SCAN_NOT_FOUND`\n\nThe same `404` is returned even if the scan exists but belongs to a different client — the API never reveals another client's data."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('Error code is SCAN_NOT_FOUND', function () {",
+                  "    pm.expect(pm.response.json().error.code).to.equal('SCAN_NOT_FOUND');",
+                  "});",
+                  "console.log('Cross-client data isolation confirmed.');"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Quota Math Verification",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/usage",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "usage"]
+            },
+            "description": "Verify that quota arithmetic is self-consistent:\n`scans_remaining = scan_quota_per_month − scans_used_this_month`\n\nRun after submitting one or more scans to confirm the counter increments correctly."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "var q = pm.response.json().data && pm.response.json().data.quota;",
+                  "pm.test('Quota math is correct', function () {",
+                  "    if (!q || q.scan_quota_per_month === null) {",
+                  "        console.log('Key has unlimited quota — skipping arithmetic check.');",
+                  "        return;",
+                  "    }",
+                  "    var expected = q.scan_quota_per_month - q.scans_used_this_month;",
+                  "    pm.expect(q.scans_remaining_this_month).to.equal(expected);",
+                  "    console.log('Quota math verified: ' + q.scan_quota_per_month +",
+                  "        ' total - ' + q.scans_used_this_month +",
+                  "        ' used = ' + q.scans_remaining_this_month + ' remaining');",
+                  "});",
+                  "pm.test('quota_resets_at is in the future', function () {",
+                  "    if (!q || !q.quota_resets_at) return;",
+                  "    pm.expect(new Date(q.quota_resets_at).getTime()).to.be.above(Date.now());",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
