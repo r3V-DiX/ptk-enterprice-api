@@ -99,9 +99,6 @@ def _validate_scan_target(v: str) -> str:
 
 class SubmitScanRequest(BaseModel):
     target: str
-    project_id: str | None = None
-    asset_id: str | None = None
-    idempotency_key: str | None = None
 
     @field_validator("target")
     @classmethod
@@ -137,8 +134,6 @@ class ScanResponse(BaseModel):
     scan_id: str
     target: str
     status: str
-    project_id: str | None
-    asset_id: str | None
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None

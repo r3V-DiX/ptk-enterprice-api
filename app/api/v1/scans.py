@@ -40,19 +40,15 @@ async def submit_scan(
             client_id=api_key.client_id,
             api_key_id=api_key.id,
             target=body.target,
-            project_id=body.project_id,
-            asset_id=body.asset_id,
-            idempotency_key=body.idempotency_key,
         )
     except ValueError as exc:
         error_code = str(exc)
-        if error_code in ("PROJECT_NOT_FOUND", "ASSET_NOT_FOUND", "SCAN_QUOTA_EXCEEDED"):
+        if error_code == "SCAN_QUOTA_EXCEEDED":
             return error_response(error_code, request_id)
         logger.error("Unexpected error in create_scan: %s", exc)
         return error_response("INTERNAL_ERROR", request_id)
 
     if not is_new:
-        # Idempotency match — return existing scan as 200
         return JSONResponse(
             status_code=200,
             content={"request_id": request_id, "data": build_scan_response(scan)},

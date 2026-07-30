@@ -29,27 +29,12 @@ def create_scan(
     client_id: str,
     api_key_id: str | None,
     target: str,
-    project_id: str | None = None,
-    asset_id: str | None = None,
-    idempotency_key: str | None = None,
 ) -> tuple[ScanJob, bool]:
     """
-    Create a new scan job. Returns (ScanJob, is_new).
-    is_new=False means idempotency key matched an existing scan.
-    Raises ValueError with error code string on validation failure.
+    Create a new scan job. Returns (ScanJob, is_new=True).
+    Raises ValueError with error code string on quota failure.
     """
-    # Idempotency: return existing scan if key already used by this client
-    if idempotency_key:
-        existing = db.execute(
-            select(ScanJob).where(
-                ScanJob.client_id == client_id,
-                ScanJob.idempotency_key == idempotency_key,
-            )
-        ).scalar_one_or_none()
-        if existing:
-            return existing, False
-
-    # Monthly quota enforcement — only applies when api_key_id is set and key has a quota
+    # Monthly quota enforcement
     if api_key_id:
         api_key = db.get(ApiKey, api_key_id)
         if api_key and api_key.scan_quota_per_month is not None:
@@ -68,55 +53,16 @@ def create_scan(
                 )
                 raise ValueError("SCAN_QUOTA_EXCEEDED")
 
-    # Validate project belongs to this client
-    if project_id:
-        project = db.execute(
-            select(Project).where(
-                Project.id == project_id,
-                Project.client_id == client_id,
-            )
-        ).scalar_one_or_none()
-        if project is None:
-            raise ValueError("PROJECT_NOT_FOUND")
-
-    # Validate asset belongs to this client
-    if asset_id:
-        asset = db.execute(
-            select(Asset).where(
-                Asset.id == asset_id,
-                Asset.client_id == client_id,
-            )
-        ).scalar_one_or_none()
-        if asset is None:
-            raise ValueError("ASSET_NOT_FOUND")
-
     stored_target = _strip_protocol(target)
 
     scan = ScanJob(
         client_id=client_id,
         api_key_id=api_key_id,
         target=stored_target,
-        project_id=project_id,
-        asset_id=asset_id,
-        idempotency_key=idempotency_key,
         status="queued",
     )
     db.add(scan)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        # Race condition or cross-client key collision — re-fetch and return existing
-        if idempotency_key:
-            existing = db.execute(
-                select(ScanJob).where(
-                    ScanJob.client_id == client_id,
-                    ScanJob.idempotency_key == idempotency_key,
-                )
-            ).scalar_one_or_none()
-            if existing:
-                return existing, False
-        raise
+    db.commit()
     db.refresh(scan)
     logger.info("Scan created id=%s target=%s client=%s", scan.id, stored_target, client_id)
     return scan, True
@@ -215,8 +161,6 @@ def build_scan_response(scan: ScanJob) -> dict:
         "scan_id": scan.id,
         "target": scan.target,
         "status": scan.status,
-        "project_id": scan.project_id,
-        "asset_id": scan.asset_id,
         "created_at": scan.created_at.isoformat(),
         "started_at": scan.started_at.isoformat() if scan.started_at else None,
         "completed_at": scan.completed_at.isoformat() if scan.completed_at else None,

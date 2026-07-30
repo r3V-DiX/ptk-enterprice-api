@@ -193,6 +193,7 @@ async def get_scan_detail(
         return {
             "scan_id": s.id,
             "client_id": s.client_id,
+            "company_name": s.client.company_name if s.client else None,
             "target": s.target,
             "status": s.status,
             "project_id": s.project_id,
@@ -293,6 +294,7 @@ async def list_all_findings(
             "id": f.id,
             "scan_id": f.scan_job_id,
             "client_id": f.client_id,
+            "company_name": f.client.company_name if f.client else None,
             "title": f.title,
             "severity": f.severity,
             "tool": f.tool,
