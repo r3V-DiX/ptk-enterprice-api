@@ -125,14 +125,16 @@ class WafPlugin(BaseScannerPlugin):
             finding = {
                 "id": str(uuid.uuid4()),
                 "title": "No WAF Detected — Direct Origin Exposure",
-                "severity": "info",
+                "severity": "low",
                 "description": (
                     f"No WAF signatures detected for {target}. "
-                    "The origin server may be directly reachable."
+                    "The origin server may be directly reachable and unprotected by a web application firewall."
                 ),
-                "remediation": "Consider deploying a WAF to protect against common web attacks.",
+                "remediation": "Consider deploying a WAF (e.g. Cloudflare, AWS WAF) to protect against common web attacks.",
                 "evidence": evidence,
-                "cvss_score": None, "cwe_id": None, "owasp_category": None,
+                "cvss_score": 3.1,
+                "cwe_id": "CWE-693",
+                "owasp_category": "A05:2021 – Security Misconfiguration",
             }
         return PluginResult(plugin_id="waf", target=target, findings=[finding],
                             metadata=evidence, duration_seconds=time.time() - start)

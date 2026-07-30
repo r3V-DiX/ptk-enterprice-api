@@ -117,8 +117,9 @@ class TlsInfoPlugin(BaseScannerPlugin):
                     "owasp_category": "A02:2021 – Cryptographic Failures",
                 })
 
-        # Weak protocol check
-        if protocol and any(weak in protocol for weak in ("SSLv3", "TLSv1", "TLSv1.0", "TLSv1.1")):
+        # Weak protocol check — exact match only (TLSv1.3 must NOT match TLSv1)
+        _WEAK_PROTOCOLS = {"SSLv2", "SSLv3", "TLSv1", "TLSv1.0", "TLSv1.1"}
+        if protocol and protocol in _WEAK_PROTOCOLS:
             findings.append({
                 "id": str(uuid.uuid4()),
                 "title": f"Weak TLS Protocol in Use: {protocol}",
