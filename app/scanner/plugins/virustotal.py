@@ -87,11 +87,11 @@ class VirustotalPlugin(BaseScannerPlugin):
             if malicious > 0:
                 finding = {
                     "id": str(uuid.uuid4()),
-                    "title": f"Domain Flagged as Malicious by {malicious} Vendors",
+                    "title": f"Domain Flagged as Malicious by {malicious} Vendor(s)",
                     "severity": "high",
                     "description": (
-                        f"{domain} has been flagged as malicious by {malicious} security vendors "
-                        f"on VirusTotal. Suspicious: {suspicious}."
+                        f"{domain} has been flagged as malicious by {malicious} security vendor(s) "
+                        f"on VirusTotal ({suspicious} suspicious, {harmless} harmless)."
                     ),
                     "remediation": (
                         "Investigate the domain's reputation. Check for malware hosting, "
@@ -102,12 +102,30 @@ class VirustotalPlugin(BaseScannerPlugin):
                     "cwe_id": None,
                     "owasp_category": "A08:2021 – Software and Data Integrity Failures",
                 }
+            elif suspicious > 0:
+                finding = {
+                    "id": str(uuid.uuid4()),
+                    "title": f"Domain Flagged as Suspicious by {suspicious} Vendor(s)",
+                    "severity": "medium",
+                    "description": (
+                        f"{domain} has been flagged as suspicious by {suspicious} security vendor(s) "
+                        f"on VirusTotal with no confirmed malicious detections."
+                    ),
+                    "remediation": (
+                        "Review the domain's recent activity and hosting history. "
+                        "Monitor for escalation to confirmed malicious status."
+                    ),
+                    "evidence": evidence,
+                    "cvss_score": 4.3,
+                    "cwe_id": None,
+                    "owasp_category": "A08:2021 – Software and Data Integrity Failures",
+                }
             else:
                 finding = {
                     "id": str(uuid.uuid4()),
                     "title": "Domain Reputation Clean",
                     "severity": "info",
-                    "description": f"{domain} has no malicious detections on VirusTotal.",
+                    "description": f"{domain} has no malicious or suspicious detections on VirusTotal.",
                     "remediation": None,
                     "evidence": evidence,
                     "cvss_score": None, "cwe_id": None, "owasp_category": None,

@@ -91,17 +91,35 @@ class HttpxPlugin(BaseScannerPlugin):
                 powered = resp.headers.get("X-Powered-By", "")
                 tech_parts = [s for s in [server, powered] if s]
                 tech_str = ", ".join(tech_parts) if tech_parts else "unknown"
+
+                # Version disclosure is low — attacker can target known CVEs for that version
+                version_disclosed = any(
+                    any(c.isdigit() for c in h) for h in [server, powered] if h
+                )
+                severity = "low" if version_disclosed else "info"
+                remediation = (
+                    "Remove version information from Server and X-Powered-By headers "
+                    "to prevent targeted exploitation of known CVEs."
+                    if version_disclosed else None
+                )
+
                 findings.append({
                     "id": str(uuid.uuid4()),
                     "title": f"Web Technologies Detected: {tech_str}",
-                    "severity": "info",
-                    "description": f"Target responded with HTTP {resp.status_code}. Server: {server}.",
-                    "remediation": None,
+                    "severity": severity,
+                    "description": (
+                        f"Target responded with HTTP {resp.status_code}. Server: {server}."
+                        + (" Version information is disclosed in response headers." if version_disclosed else "")
+                    ),
+                    "remediation": remediation,
                     "evidence": {
                         "url": url, "status_code": resp.status_code,
                         "server": server, "x_powered_by": powered,
+                        "version_disclosed": version_disclosed,
                     },
-                    "cvss_score": None, "cwe_id": None, "owasp_category": None,
+                    "cvss_score": 3.1 if version_disclosed else None,
+                    "cwe_id": "CWE-200" if version_disclosed else None,
+                    "owasp_category": "A05:2021 – Security Misconfiguration" if version_disclosed else None,
                 })
                 break
             except requests.exceptions.ConnectionError:
