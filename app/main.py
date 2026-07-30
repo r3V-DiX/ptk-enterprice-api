@@ -49,6 +49,8 @@ from app.api.v1 import usage as usage_router                    # noqa: E402
 from app.api.v1 import internal_auth as internal_auth_router    # noqa: E402
 from app.api.v1 import internal as internal_router              # noqa: E402
 from app.api.v1 import internal_logs as internal_logs_router    # noqa: E402
+from app.api.v1.admin_portal import router as admin_portal_router  # noqa: E402
+app.include_router(admin_portal_router, prefix="/v1")
 app.include_router(admin_router.router, prefix="/v1")
 app.include_router(scans_router.router, prefix="/v1")
 app.include_router(findings_router.router, prefix="/v1")

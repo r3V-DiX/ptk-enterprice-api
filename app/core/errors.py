@@ -17,6 +17,7 @@ ERROR_MESSAGES = {
     "KEY_NOT_FOUND": (404, "The requested API key was not found."),
     "REPORT_NOT_READY": (409, "The scan must be completed before a report can be generated."),
     "SCAN_QUOTA_EXCEEDED": (429, "Monthly scan quota for this API key has been reached."),
+    "CORS_ORIGIN_NOT_ALLOWED": (403, "The request origin is not permitted for this API key."),
     "ADMIN_AUTH_REQUIRED": (401, "Admin authentication required."),
     "INVALID_CODE": (401, "Invalid or expired OTP code."),
     "EMAIL_NOT_ALLOWED": (403, "This email is not authorised for admin access."),

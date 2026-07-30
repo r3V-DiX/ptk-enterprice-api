@@ -7,6 +7,9 @@ from app.core.security import generate_api_key, hash_api_key, get_key_prefix
 
 logger = logging.getLogger(__name__)
 
+# Sentinel: distinguishes "caller passed None (clear the field)" from "caller omitted the arg (don't touch)"
+_UNSET = object()
+
 
 def create_api_key(
     db: Session,
@@ -16,6 +19,7 @@ def create_api_key(
     rate_limit_rpm: int = 60,
     expires_at: datetime | None = None,
     scan_quota_per_month: int | None = None,
+    cors_origins: list[str] | None = None,
 ) -> tuple[ApiKey, str]:
     """
     Generate a new API key for a client.
@@ -38,6 +42,7 @@ def create_api_key(
         rate_limit_rpm=rate_limit_rpm,
         expires_at=expires_at,
         scan_quota_per_month=scan_quota_per_month,
+        cors_origins=cors_origins,
     )
     db.add(api_key)
     db.commit()
@@ -103,3 +108,71 @@ def revoke_api_key(db: Session, key_id: str, client_id: str | None = None) -> bo
         logger.error("Error revoking API key id=%s: %s", key_id, exc)
         db.rollback()
         return False
+
+
+def update_api_key(
+    db: Session,
+    key_id: str,
+    client_id: str | None = None,
+    label=_UNSET,
+    scan_quota_per_month=_UNSET,
+    rate_limit_rpm=_UNSET,
+    is_active=_UNSET,
+    cors_origins=_UNSET,
+) -> ApiKey | None:
+    """
+    Partially update an API key. Uses _UNSET sentinel to distinguish
+    "don't change" from "set to None/clear".
+
+    Special cases:
+      - scan_quota_per_month=-1  → sets DB value to NULL (unlimited)
+      - cors_origins=[]          → clears all restrictions (stored as NULL)
+
+    Returns updated ApiKey or None if not found.
+    """
+    try:
+        stmt = select(ApiKey).where(ApiKey.id == key_id)
+        if client_id is not None:
+            stmt = stmt.where(ApiKey.client_id == client_id)
+
+        api_key = db.execute(stmt).scalar_one_or_none()
+        if api_key is None:
+            return None
+
+        changed: dict = {}
+
+        if label is not _UNSET:
+            api_key.label = label
+            changed["label"] = label
+
+        if scan_quota_per_month is not _UNSET:
+            # -1 is the sentinel for "set to unlimited (NULL)"
+            if scan_quota_per_month == -1:
+                api_key.scan_quota_per_month = None
+                changed["scan_quota_per_month"] = None
+            else:
+                api_key.scan_quota_per_month = scan_quota_per_month
+                changed["scan_quota_per_month"] = scan_quota_per_month
+
+        if rate_limit_rpm is not _UNSET:
+            api_key.rate_limit_rpm = rate_limit_rpm
+            changed["rate_limit_rpm"] = rate_limit_rpm
+
+        if is_active is not _UNSET:
+            api_key.is_active = is_active
+            changed["is_active"] = is_active
+
+        if cors_origins is not _UNSET:
+            # [] means "clear all restrictions" — store as NULL
+            api_key.cors_origins = cors_origins if cors_origins else None
+            changed["cors_origins"] = api_key.cors_origins
+
+        db.commit()
+        db.refresh(api_key)
+        logger.info("API key updated: prefix=%s id=%s changes=%s", api_key.key_prefix, key_id, changed)
+        return api_key
+
+    except Exception as exc:
+        logger.error("Error updating API key id=%s: %s", key_id, exc)
+        db.rollback()
+        return None

@@ -17,6 +17,7 @@ class ApiKey(Base):
     scopes: Mapped[list] = mapped_column(JSON, nullable=False, default=lambda: ["scan:write", "scan:read", "usage:read"])
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     rate_limit_rpm: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
+    cors_origins: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

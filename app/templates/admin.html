@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pentoolkit Enterprise — Admin</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0f1117;
+  --surface:   #161b22;
+  --border:    #21262d;
+  --sidebar:   #0d1117;
+  --text:      #e6edf3;
+  --muted:     #8b949e;
+  --accent:    #58a6ff;
+  --success:   #3fb950;
+  --warning:   #d29922;
+  --danger:    #f85149;
+  --input-bg:  #0d1117;
+  --input-bd:  #30363d;
+  --radius-card: 8px;
+  --radius-btn:  6px;
+  --radius-badge: 4px;
+  --transition: 0.15s ease;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Login ─────────────────────────────────────────────── */
+#login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg);
+}
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 40px 36px;
+  width: 360px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.login-logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.login-subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 28px;
+}
+.login-card label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+/* ─── App Shell ─────────────────────────────────────────── */
+#app { display: none; height: 100vh; overflow: hidden; }
+.layout { display: flex; height: 100vh; }
+
+/* ─── Sidebar ───────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+}
+.sidebar-header {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.2px;
+}
+.sidebar-tagline {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.sidebar-nav {
+  padding: 12px 8px;
+  flex: 1;
+}
+.nav-section {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 8px 10px 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-btn);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  user-select: none;
+}
+.nav-item:hover { background: rgba(88,166,255,0.08); color: var(--text); }
+.nav-item.active { background: rgba(88,166,255,0.12); color: var(--accent); }
+.nav-item svg { flex-shrink: 0; }
+.sidebar-footer {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+}
+.sidebar-footer .key-indicator {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 10px;
+  color: var(--success);
+}
+.sidebar-footer .btn-signout {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--danger);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+}
+.sidebar-footer .btn-signout:hover { text-decoration: underline; }
+
+/* ─── Main Content ──────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.topbar {
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  flex: 1;
+}
+.breadcrumb {
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.breadcrumb-sep { color: var(--border); }
+.breadcrumb .crumb-link { color: var(--accent); cursor: pointer; }
+.breadcrumb .crumb-link:hover { text-decoration: underline; }
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* ─── Buttons ───────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-btn);
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition), border-color var(--transition), opacity var(--transition);
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: #79b8ff; border-color: #79b8ff; }
+.btn-secondary { background: transparent; color: var(--text); border-color: var(--input-bd); }
+.btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.06); border-color: var(--muted); }
+.btn-danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+.btn-danger:hover:not(:disabled) { background: rgba(248,81,73,0.1); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 5px 8px; }
+.btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.06); color: var(--text); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-icon { padding: 5px; }
+
+/* ─── Stat Cards ────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+}
+.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.stat-value { font-size: 28px; font-weight: 700; color: var(--text); }
+.stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ─── Table ─────────────────────────────────────────────── */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.table-title { font-size: 14px; font-weight: 600; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  padding: 10px 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.actions-cell { display: flex; gap: 4px; align-items: center; }
+
+/* ─── Badges ────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-badge);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.badge-free { background: rgba(139,148,158,0.15); color: var(--muted); }
+.badge-pro { background: rgba(88,166,255,0.15); color: var(--accent); }
+.badge-enterprise { background: rgba(210,153,34,0.15); color: var(--warning); }
+.badge-active { background: rgba(63,185,80,0.15); color: var(--success); }
+.badge-inactive { background: rgba(248,81,73,0.15); color: var(--danger); }
+.badge-revoked { background: rgba(248,81,73,0.15); color: var(--danger); }
+.badge-scope {
+  background: rgba(88,166,255,0.1);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.dot-active { background: var(--success); box-shadow: 0 0 4px var(--success); }
+.dot-inactive { background: var(--danger); }
+
+/* ─── Pagination ────────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.pagination-btns { display: flex; gap: 4px; }
+
+/* ─── Key Cards ─────────────────────────────────────────── */
+.keys-grid { display: flex; flex-direction: column; gap: 12px; }
+.key-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  transition: border-color var(--transition);
+}
+.key-card:hover { border-color: rgba(88,166,255,0.3); }
+.key-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.key-prefix {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.key-label { font-size: 13px; color: var(--muted); margin-left: 10px; }
+.key-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.key-meta-item { display: flex; align-items: center; gap: 4px; }
+.scopes-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.cors-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.cors-tag {
+  background: rgba(139,148,158,0.12);
+  color: var(--muted);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+.key-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+.key-footer-actions { display: flex; gap: 6px; }
+
+/* ─── New Key Banner ────────────────────────────────────── */
+.new-key-banner {
+  background: rgba(63,185,80,0.08);
+  border: 1px solid rgba(63,185,80,0.3);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.new-key-banner-title {
+  font-weight: 600;
+  color: var(--success);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.new-key-value {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  word-break: break-all;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.new-key-warning { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ─── Forms / Inputs ────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.form-group label span.required { color: var(--danger); margin-left: 2px; }
+input[type="text"], input[type="email"], input[type="number"],
+input[type="password"], input[type="date"], select, textarea {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--input-bd);
+  border-radius: var(--radius-btn);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+input[type="text"]:focus, input[type="email"]:focus, input[type="number"]:focus,
+input[type="password"]:focus, input[type="date"]:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+}
+input::placeholder, textarea::placeholder { color: var(--muted); }
+select option { background: var(--surface); }
+textarea { resize: vertical; min-height: 72px; }
+.form-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.form-error { font-size: 11px; color: var(--danger); margin-top: 4px; display: none; }
+
+/* Checkbox group */
+.checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+.checkbox-item input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Toggle */
+.toggle-row { display: flex; align-items: center; gap: 10px; }
+.toggle {
+  position: relative; width: 36px; height: 20px;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--input-bd); border-radius: 10px;
+  cursor: pointer; transition: background var(--transition);
+}
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--text);
+  top: 3px; left: 3px;
+  transition: transform var(--transition);
+}
+.toggle input:checked + .toggle-slider { background: var(--accent); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+/* ─── Modal ─────────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  width: 480px;
+  max-width: 96vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title { font-size: 15px; font-weight: 600; }
+.modal-close {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 18px; line-height: 1;
+  padding: 2px 6px; border-radius: 4px;
+  transition: color var(--transition), background var(--transition);
+}
+.modal-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.modal-body { padding: 20px; }
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* ─── Toasts ────────────────────────────────────────────── */
+#toast-container {
+  position: fixed;
+  top: 16px; right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  padding: 12px 16px;
+  font-size: 13px;
+  min-width: 240px;
+  max-width: 340px;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  transform: translateX(360px);
+  transition: transform 0.25s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.toast.show { transform: translateX(0); }
+.toast-success { border-left: 3px solid var(--success); }
+.toast-error   { border-left: 3px solid var(--danger); }
+.toast-icon { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+.toast-msg { flex: 1; color: var(--text); }
+
+/* ─── Spinner ───────────────────────────────────────────── */
+.spinner-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+.spinner {
+  width: 24px; height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Empty State ───────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+.empty-state-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+.empty-state-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.empty-state-sub { font-size: 13px; }
+
+/* ─── Page header row ───────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title { font-size: 18px; font-weight: 700; }
+
+/* ─── Misc ──────────────────────────────────────────────── */
+.text-mono { font-family: "SFMono-Regular", Consolas, monospace; }
+.text-muted { color: var(--muted); }
+.text-danger { color: var(--danger); }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .stats-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ───────────────── LOGIN ───────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">⬡ Pentoolkit Enterprise</div>
+    <div class="login-subtitle">Admin Portal</div>
+    <div style="margin-bottom:20px; border-top:1px solid var(--border);"></div>
+    <div class="form-group">
+      <label>Admin API Key</label>
+      <input type="password" id="login-key-input" placeholder="ptk_..." autocomplete="off" />
+    </div>
+    <div id="login-error" style="display:none; color:var(--danger); font-size:12px; margin-bottom:12px;"></div>
+    <button class="btn btn-primary" id="login-btn" style="width:100%;" onclick="App.login()">
+      Connect
+    </button>
+  </div>
+</div>
+
+<!-- ───────────────── APP ─────────────────────────────── -->
+<div id="app">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">⬡ Pentoolkit</div>
+        <div class="sidebar-tagline">Enterprise Admin</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Management</div>
+        <div class="nav-item active" id="nav-clients" onclick="App.showPage('clients')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-1 1a4 4 0 0 0-4 4v.5a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V13a4 4 0 0 0-4-4H7z"/></svg>
+          Clients
+        </div>
+        <div class="nav-item" id="nav-settings" onclick="App.showPage('settings')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.474l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/></svg>
+          Settings
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div style="font-size:11px; margin-bottom:4px;">Connected as</div>
+        <div class="key-indicator" id="sidebar-key-label">—</div>
+        <button class="btn-signout" onclick="App.signout()">Sign out</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="topbar-title">Clients</div>
+      </div>
+      <div class="content" id="main-content">
+        <div class="spinner-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────────── TOAST CONTAINER ────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ───────────────── MODALS ─────────────────────────── -->
+
+<!-- New Client -->
+<div class="modal-overlay" id="modal-new-client">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">New Client</div>
+      <button class="modal-close" onclick="App.closeModal('modal-new-client')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Company Name <span class="required">*</span></label>
+        <input type="text" id="nc-company" placeholder="Acme Corp" />
+        <div class="form-error" id="nc-company-err">Required</div>
+      </div>
+      <div class="form-group">
+        <label>Contact Email <span class="required">*</span></label>
+        <input type="email" id="nc-email" placeholder="admin@example.com" />
+        <div class="form-error" id="nc-email-err">Valid email required</div>
+      </div>
+      <div class="form-group">
+        <label>Tier</label>
+        <select id="nc-tier">
+          <option value="free">Free</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-new-client')">Cancel</button>
+      <button class="btn btn-primary" id="nc-submit" onclick="App.submitNewClient()">Create Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Client -->
+<div class="modal-overlay" id="modal-edit-client">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Client</div>
+      <button class="modal-close" onclick="App.closeModal('modal-edit-client')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ec-id" />
+      <div class="form-group">
+        <label>Company Name</label>
+        <input type="text" id="ec-company" />
+      </div>
+      <div class="form-group">
+        <label>Tier</label>
+        <select id="ec-tier">
+          <option value="free">Free</option>
+          <option value="pro">Pro</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="ec-active" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span style="font-size:13px;" id="ec-active-label">Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-edit-client')">Cancel</button>
+      <button class="btn btn-primary" id="ec-submit" onclick="App.submitEditClient()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Client Confirm -->
+<div class="modal-overlay" id="modal-delete-client">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--danger);">Delete Client</div>
+      <button class="modal-close" onclick="App.closeModal('modal-delete-client')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dc-id" />
+      <p style="font-size:14px; line-height:1.6;">
+        Delete <strong id="dc-name"></strong>? This will permanently delete the client and all their API keys and data. This action cannot be undone.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-delete-client')">Cancel</button>
+      <button class="btn btn-danger" id="dc-submit" onclick="App.submitDeleteClient()">Delete Permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- Issue API Key -->
+<div class="modal-overlay" id="modal-new-key">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Issue API Key</div>
+      <button class="modal-close" onclick="App.closeModal('modal-new-key')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Label (optional)</label>
+        <input type="text" id="nk-label" placeholder="Production key" />
+      </div>
+      <div class="form-group">
+        <label>Scopes</label>
+        <div class="checkbox-group">
+          <label class="checkbox-item">
+            <input type="checkbox" id="nk-scope-scan-write" value="scan:write" checked />
+            <span>scan:write — submit scans</span>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="nk-scope-scan-read" value="scan:read" checked />
+            <span>scan:read — read scan results</span>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="nk-scope-usage-read" value="usage:read" />
+            <span>usage:read — read usage data</span>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Rate Limit (RPM)</label>
+        <input type="number" id="nk-rpm" value="60" min="1" max="10000" />
+        <div class="form-hint">Requests per minute. Default: 60.</div>
+      </div>
+      <div class="form-group">
+        <label>Scan Quota / Month</label>
+        <input type="number" id="nk-quota" placeholder="Blank for unlimited" min="1" />
+        <div class="form-hint">Leave blank for unlimited scans.</div>
+      </div>
+      <div class="form-group">
+        <label>Expires At (optional)</label>
+        <input type="date" id="nk-expires" />
+      </div>
+      <div class="form-group">
+        <label>CORS Origins (optional)</label>
+        <textarea id="nk-cors" placeholder="https://app.example.com&#10;https://staging.example.com"></textarea>
+        <div class="form-hint">One origin per line. Leave blank to allow all origins.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-new-key')">Cancel</button>
+      <button class="btn btn-primary" id="nk-submit" onclick="App.submitNewKey()">Issue Key</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Key -->
+<div class="modal-overlay" id="modal-edit-key">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit API Key</div>
+      <button class="modal-close" onclick="App.closeModal('modal-edit-key')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ek-id" />
+      <div class="form-group">
+        <label>Label</label>
+        <input type="text" id="ek-label" placeholder="Production key" />
+      </div>
+      <div class="form-group">
+        <label>Rate Limit (RPM)</label>
+        <input type="number" id="ek-rpm" min="1" />
+      </div>
+      <div class="form-group">
+        <label>Scan Quota / Month</label>
+        <input type="number" id="ek-quota" placeholder="Blank for unlimited" />
+        <div class="form-hint">Leave blank for unlimited. Enter -1 to explicitly clear.</div>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="ek-active" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span style="font-size:13px;" id="ek-active-label">Active</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>CORS Origins</label>
+        <textarea id="ek-cors" placeholder="https://app.example.com&#10;https://staging.example.com"></textarea>
+        <div class="form-hint">One origin per line. Leave blank to allow all origins.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-edit-key')">Cancel</button>
+      <button class="btn btn-primary" id="ek-submit" onclick="App.submitEditKey()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Revoke Key Confirm -->
+<div class="modal-overlay" id="modal-revoke-key">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" style="color:var(--danger);">Revoke API Key</div>
+      <button class="modal-close" onclick="App.closeModal('modal-revoke-key')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rk-id" />
+      <p style="font-size:14px; line-height:1.6;">
+        Revoke key <code id="rk-prefix" class="text-mono" style="background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;"></code>?
+        This key will immediately stop working. This action cannot be undone.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-revoke-key')">Cancel</button>
+      <button class="btn btn-danger" id="rk-submit" onclick="App.submitRevokeKey()">Revoke Key</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  App namespace
+// ════════════════════════════════════════════════════════════════
+const App = (() => {
+  // ─── State ───────────────────────────────────────────────────
+  const state = {
+    adminKey: null,
+    page: 'clients',
+    clients: [],
+    clientsMeta: { total: 0, page: 1, limit: 20 },
+    clientsOffset: 0,
+    totalKeys: 0,
+    currentClient: null,
+    keys: [],
+    newKeyPlaintext: null,
+    loading: false,
+  };
+
+  const BASE = () => window.location.origin;
+
+  // ─── API ─────────────────────────────────────────────────────
+  const api = {
+    async req(method, path, body) {
+      const opts = {
+        method,
+        headers: {
+          'Authorization': `Bearer ${state.adminKey}`,
+          'Content-Type': 'application/json',
+        },
+      };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const res = await fetch(`${BASE()}${path}`, opts);
+      if (res.status === 401) {
+        localStorage.removeItem('ptk_admin_key');
+        state.adminKey = null;
+        showLogin();
+        throw new Error('Unauthorized');
+      }
+      if (res.status === 204) return null;
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error?.message || data?.detail || `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+      return data;
+    },
+    get: (p) => api.req('GET', p),
+    post: (p, b) => api.req('POST', p, b),
+    patch: (p, b) => api.req('PATCH', p, b),
+    delete: (p) => api.req('DELETE', p),
+  };
+
+  // ─── Toast ───────────────────────────────────────────────────
+  function toast(msg, type = 'success') {
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    const icon = type === 'success' ? '✓' : '✕';
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${msg}</span>`;
+    c.appendChild(t);
+    requestAnimationFrame(() => { requestAnimationFrame(() => { t.classList.add('show'); }); });
+    setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => t.remove(), 300);
+    }, 4000);
+  }
+
+  // ─── Modal helpers ───────────────────────────────────────────
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = loading;
+    if (loading) btn.dataset.origText = btn.textContent;
+    else btn.textContent = btn.dataset.origText || btn.textContent;
+  }
+
+  // ─── Login ───────────────────────────────────────────────────
+  function showLogin() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+  function showApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    const short = state.adminKey.length > 12
+      ? state.adminKey.substring(0, 8) + '...' + state.adminKey.slice(-4)
+      : state.adminKey;
+    document.getElementById('sidebar-key-label').textContent = short;
+  }
+
+  async function login() {
+    const key = document.getElementById('login-key-input').value.trim();
+    const errEl = document.getElementById('login-error');
+    errEl.style.display = 'none';
+    if (!key) { errEl.textContent = 'Enter an admin key.'; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true; btn.textContent = 'Connecting…';
+    try {
+      state.adminKey = key;
+      await api.get('/v1/admin/clients?limit=1&offset=0');
+      localStorage.setItem('ptk_admin_key', key);
+      showApp();
+      showPage('clients');
+    } catch(e) {
+      state.adminKey = null;
+      errEl.textContent = e.message.includes('Unauthorized') ? 'Invalid admin key.' : e.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Connect';
+    }
+  }
+
+  function signout() {
+    localStorage.removeItem('ptk_admin_key');
+    state.adminKey = null;
+    document.getElementById('login-key-input').value = '';
+    showLogin();
+  }
+
+  // ─── Nav ─────────────────────────────────────────────────────
+  function showPage(name) {
+    state.page = name;
+    ['clients','settings'].forEach(p => {
+      document.getElementById(`nav-${p}`)?.classList.toggle('active', p === name);
+    });
+    document.getElementById('topbar-title').textContent =
+      name === 'clients' ? 'Clients' : 'Settings';
+    if (name === 'clients') renderClientsPage();
+    if (name === 'settings') renderSettingsPage();
+  }
+
+  // ─── Clients page ────────────────────────────────────────────
+  async function renderClientsPage() {
+    const content = document.getElementById('main-content');
+    content.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+    try {
+      const limit = state.clientsMeta.limit;
+      const [listRes, allRes] = await Promise.all([
+        api.get(`/v1/admin/clients?limit=${limit}&offset=${state.clientsOffset}`),
+        api.get('/v1/admin/clients?limit=1&offset=0'),
+      ]);
+      state.clients = listRes.data || [];
+      state.clientsMeta = { ...listRes.meta };
+
+      // Count keys across all clients (approximate — we use total clients for stat cards)
+      content.innerHTML = buildClientsPage(state.clients, state.clientsMeta);
+    } catch(e) {
+      content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-title">Failed to load</div><div class="empty-state-sub">${e.message}</div></div>`;
+    }
+  }
+
+  function buildClientsPage(clients, meta) {
+    const activeCount = clients.filter(c => c.is_active).length;
+    return `
+    <div class="page-header">
+      <div class="page-title">Clients</div>
+      <button class="btn btn-primary" onclick="App.openNewClientModal()">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/></svg>
+        New Client
+      </button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Clients</div>
+        <div class="stat-value">${meta.total}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Clients (this page)</div>
+        <div class="stat-value">${activeCount}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Page</div>
+        <div class="stat-value">${meta.page}</div>
+        <div class="stat-sub">of ${Math.max(1, Math.ceil(meta.total / meta.limit))}</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">All Clients</div>
+      </div>
+      ${clients.length === 0
+        ? `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No clients yet</div><div class="empty-state-sub">Create your first client to get started.</div></div>`
+        : `<table>
+          <thead><tr>
+            <th>Company</th><th>Email</th><th>Tier</th><th>Status</th><th>Created</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+            ${clients.map(c => clientRow(c)).join('')}
+          </tbody>
+        </table>`
+      }
+      <div class="pagination">
+        <span>${meta.total} client${meta.total !== 1 ? 's' : ''} total</span>
+        <div class="pagination-btns">
+          <button class="btn btn-secondary btn-sm" ${state.clientsOffset === 0 ? 'disabled' : ''} onclick="App.clientsPage(-1)">← Prev</button>
+          <button class="btn btn-secondary btn-sm" ${state.clientsOffset + meta.limit >= meta.total ? 'disabled' : ''} onclick="App.clientsPage(1)">Next →</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function clientRow(c) {
+    const tierBadge = {
+      free: '<span class="badge badge-free">free</span>',
+      pro: '<span class="badge badge-pro">pro</span>',
+      enterprise: '<span class="badge badge-enterprise">enterprise</span>',
+    }[c.tier] || `<span class="badge badge-free">${c.tier}</span>`;
+    const status = c.is_active
+      ? `<span class="status-dot dot-active"></span>Active`
+      : `<span class="status-dot dot-inactive"></span>Inactive`;
+    const created = c.created_at ? new Date(c.created_at).toLocaleDateString() : '—';
+    return `<tr>
+      <td><strong>${escHtml(c.company_name)}</strong></td>
+      <td class="text-muted">${escHtml(c.contact_email)}</td>
+      <td>${tierBadge}</td>
+      <td style="font-size:13px;">${status}</td>
+      <td class="text-muted">${created}</td>
+      <td>
+        <div class="actions-cell">
+          <button class="btn btn-secondary btn-sm" onclick="App.showKeys('${c.id}')">Keys</button>
+          <button class="btn btn-ghost btn-icon btn-sm" title="Edit" onclick="App.openEditClientModal('${c.id}')">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/></svg>
+          </button>
+          <button class="btn btn-ghost btn-icon btn-sm" title="Delete" style="color:var(--danger)" onclick="App.openDeleteClientModal('${c.id}', '${escHtml(c.company_name).replace(/'/g,"\\'")}')">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  function clientsPage(dir) {
+    const limit = state.clientsMeta.limit;
+    state.clientsOffset = Math.max(0, state.clientsOffset + dir * limit);
+    renderClientsPage();
+  }
+
+  // ─── New Client modal ─────────────────────────────────────────
+  function openNewClientModal() {
+    document.getElementById('nc-company').value = '';
+    document.getElementById('nc-email').value = '';
+    document.getElementById('nc-tier').value = 'free';
+    document.getElementById('nc-company-err').style.display = 'none';
+    document.getElementById('nc-email-err').style.display = 'none';
+    openModal('modal-new-client');
+    setTimeout(() => document.getElementById('nc-company').focus(), 50);
+  }
+
+  async function submitNewClient() {
+    const company = document.getElementById('nc-company').value.trim();
+    const email = document.getElementById('nc-email').value.trim();
+    const tier = document.getElementById('nc-tier').value;
+    let valid = true;
+    if (!company) { document.getElementById('nc-company-err').style.display = 'block'; valid = false; }
+    else document.getElementById('nc-company-err').style.display = 'none';
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      document.getElementById('nc-email-err').style.display = 'block'; valid = false;
+    } else document.getElementById('nc-email-err').style.display = 'none';
+    if (!valid) return;
+    setLoading('nc-submit', true);
+    try {
+      await api.post('/v1/admin/clients', { company_name: company, contact_email: email, tier });
+      closeModal('modal-new-client');
+      toast('Client created successfully.');
+      renderClientsPage();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      setLoading('nc-submit', false);
+    }
+  }
+
+  // ─── Edit Client modal ────────────────────────────────────────
+  function openEditClientModal(clientId) {
+    const c = state.clients.find(x => x.id === clientId);
+    if (!c) return;
+    document.getElementById('ec-id').value = c.id;
+    document.getElementById('ec-company').value = c.company_name;
+    document.getElementById('ec-tier').value = c.tier;
+    const activeChk = document.getElementById('ec-active');
+    activeChk.checked = c.is_active;
+    document.getElementById('ec-active-label').textContent = c.is_active ? 'Active' : 'Inactive';
+    activeChk.onchange = () => {
+      document.getElementById('ec-active-label').textContent = activeChk.checked ? 'Active' : 'Inactive';
+    };
+    openModal('modal-edit-client');
+  }
+
+  async function submitEditClient() {
+    const id = document.getElementById('ec-id').value;
+    const company = document.getElementById('ec-company').value.trim();
+    const tier = document.getElementById('ec-tier').value;
+    const is_active = document.getElementById('ec-active').checked;
+    if (!company) { toast('Company name cannot be empty.', 'error'); return; }
+    setLoading('ec-submit', true);
+    try {
+      await api.patch(`/v1/admin/clients/${id}`, { company_name: company, tier, is_active });
+      closeModal('modal-edit-client');
+      toast('Client updated.');
+      renderClientsPage();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      setLoading('ec-submit', false);
+    }
+  }
+
+  // ─── Delete Client modal ──────────────────────────────────────
+  function openDeleteClientModal(clientId, companyName) {
+    document.getElementById('dc-id').value = clientId;
+    document.getElementById('dc-name').textContent = companyName;
+    openModal('modal-delete-client');
+  }
+
+  async function submitDeleteClient() {
+    const id = document.getElementById('dc-id').value;
+    setLoading('dc-submit', true);
+    try {
+      await api.delete(`/v1/admin/clients/${id}`);
+      closeModal('modal-delete-client');
+      toast('Client deleted.');
+      state.clientsOffset = 0;
+      renderClientsPage();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      setLoading('dc-submit', false);
+    }
+  }
+
+  // ─── Keys view ────────────────────────────────────────────────
+  async function showKeys(clientId) {
+    const content = document.getElementById('main-content');
+    content.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+    document.getElementById('topbar-title').textContent = 'API Keys';
+    try {
+      const [clientRes, keysRes] = await Promise.all([
+        api.get(`/v1/admin/clients/${clientId}`),
+        api.get(`/v1/admin/clients/${clientId}/keys`),
+      ]);
+      state.currentClient = clientRes.data;
+      state.keys = keysRes.data || [];
+      state.newKeyPlaintext = null;
+      renderKeysPage();
+    } catch(e) {
+      content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-title">Failed to load</div><div class="empty-state-sub">${e.message}</div></div>`;
+    }
+  }
+
+  function renderKeysPage() {
+    const c = state.currentClient;
+    const content = document.getElementById('main-content');
+    const bannerHtml = state.newKeyPlaintext ? `
+      <div class="new-key-banner" id="new-key-banner">
+        <div class="new-key-banner-title">
+          <span>✓ New API key created — save it now!</span>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('new-key-banner').remove()">Dismiss</button>
+        </div>
+        <div class="new-key-value">
+          <span id="plaintext-key">${escHtml(state.newKeyPlaintext)}</span>
+          <button class="btn btn-secondary btn-sm" onclick="App.copyKey()">Copy</button>
+        </div>
+        <div class="new-key-warning">⚠ This key will not be shown again. Copy it now.</div>
+      </div>` : '';
+
+    content.innerHTML = `
+      <div class="breadcrumb" style="margin-bottom:16px;">
+        <span class="crumb-link" onclick="App.backToClients()">Clients</span>
+        <span class="breadcrumb-sep">/</span>
+        <span>${escHtml(c.company_name)}</span>
+        <span class="breadcrumb-sep">/</span>
+        <span>API Keys</span>
+      </div>
+      <div class="page-header">
+        <div>
+          <div class="page-title">${escHtml(c.company_name)}</div>
+          <div class="text-muted" style="font-size:12px; margin-top:2px;">${escHtml(c.contact_email)} · ${c.tier}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="App.backToClients()">← Back</button>
+          <button class="btn btn-primary" onclick="App.openNewKeyModal()">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/></svg>
+            Issue New Key
+          </button>
+        </div>
+      </div>
+      ${bannerHtml}
+      <div class="keys-grid" id="keys-grid">
+        ${state.keys.length === 0
+          ? `<div class="empty-state"><div class="empty-state-icon">🔑</div><div class="empty-state-title">No API keys</div><div class="empty-state-sub">Issue a key to allow this client to authenticate.</div></div>`
+          : state.keys.map(k => keyCard(k)).join('')
+        }
+      </div>`;
+  }
+
+  function keyCard(k) {
+    const badge = k.is_active
+      ? '<span class="badge badge-active">Active</span>'
+      : '<span class="badge badge-revoked">Revoked</span>';
+    const scopes = (k.scopes || []).map(s => `<span class="badge-scope">${escHtml(s)}</span>`).join(' ');
+    const quota = k.scan_quota_per_month == null || k.scan_quota_per_month < 0
+      ? 'Unlimited'
+      : `${k.current_month_scans ?? 0} / ${k.scan_quota_per_month} this month`;
+    const resets = k.quota_resets_at ? ` · resets ${new Date(k.quota_resets_at).toLocaleDateString('en', {month:'short', day:'numeric'})}` : '';
+    const lastUsed = k.last_used_at ? `Last used ${timeAgo(k.last_used_at)}` : 'Never used';
+    const created = k.created_at ? `Issued ${new Date(k.created_at).toLocaleDateString()}` : '';
+    const expires = k.expires_at ? ` · Expires ${new Date(k.expires_at).toLocaleDateString()}` : '';
+    const corsOrigins = k.cors_origins && k.cors_origins.length > 0
+      ? k.cors_origins.map(o => `<span class="cors-tag">${escHtml(o)}</span>`).join(' ')
+      : '<span class="text-muted" style="font-size:11px;">All origins</span>';
+
+    return `<div class="key-card">
+      <div class="key-card-top">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="key-prefix">${escHtml(k.key_prefix)}…</span>
+          ${k.label ? `<span class="key-label">${escHtml(k.label)}</span>` : ''}
+          ${badge}
+        </div>
+      </div>
+      <div class="key-meta-row">
+        <span class="key-meta-item">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg>
+          ${escHtml(quota)}${resets}
+        </span>
+        <span class="key-meta-item" style="color:var(--muted);">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/></svg>
+          ${k.rate_limit_rpm || '—'} RPM
+        </span>
+        ${k.expires_at ? `<span class="key-meta-item" style="color:var(--warning);">Expires ${new Date(k.expires_at).toLocaleDateString()}</span>` : ''}
+      </div>
+      ${scopes ? `<div class="scopes-row">${scopes}</div>` : ''}
+      <div class="cors-row">${corsOrigins}</div>
+      <div class="key-footer">
+        <span>${lastUsed} · ${created}${expires}</span>
+        <div class="key-footer-actions">
+          <button class="btn btn-secondary btn-sm" onclick="App.openEditKeyModal('${k.id}')">Edit</button>
+          ${k.is_active
+            ? `<button class="btn btn-danger btn-sm" onclick="App.openRevokeKeyModal('${k.id}', '${escHtml(k.key_prefix).replace(/'/g,"\\'")}')">Revoke</button>`
+            : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function copyKey() {
+    const key = document.getElementById('plaintext-key')?.textContent;
+    if (!key) return;
+    navigator.clipboard.writeText(key).then(() => toast('Key copied to clipboard.'));
+  }
+
+  function backToClients() {
+    state.currentClient = null;
+    state.keys = [];
+    state.newKeyPlaintext = null;
+    document.getElementById('topbar-title').textContent = 'Clients';
+    renderClientsPage();
+  }
+
+  // ─── New Key modal ────────────────────────────────────────────
+  function openNewKeyModal() {
+    document.getElementById('nk-label').value = '';
+    document.getElementById('nk-scope-scan-write').checked = true;
+    document.getElementById('nk-scope-scan-read').checked = true;
+    document.getElementById('nk-scope-usage-read').checked = false;
+    document.getElementById('nk-rpm').value = '60';
+    document.getElementById('nk-quota').value = '';
+    document.getElementById('nk-expires').value = '';
+    document.getElementById('nk-cors').value = '';
+    openModal('modal-new-key');
+  }
+
+  async function submitNewKey() {
+    const scopes = ['scan:write','scan:read','usage:read']
+      .filter(s => document.getElementById(`nk-scope-${s.replace(':','-')}`)?.checked);
+    const rpmRaw = document.getElementById('nk-rpm').value;
+    const quotaRaw = document.getElementById('nk-quota').value;
+    const expiresRaw = document.getElementById('nk-expires').value;
+    const corsRaw = document.getElementById('nk-cors').value.trim();
+    const cors_origins = corsRaw ? corsRaw.split('\n').map(l => l.trim()).filter(Boolean) : null;
+
+    const body = {
+      label: document.getElementById('nk-label').value.trim() || null,
+      scopes,
+      rate_limit_rpm: rpmRaw ? parseInt(rpmRaw) : 60,
+      scan_quota_per_month: quotaRaw ? parseInt(quotaRaw) : null,
+      expires_at: expiresRaw || null,
+      cors_origins,
+    };
+    setLoading('nk-submit', true);
+    try {
+      const res = await api.post(`/v1/admin/clients/${state.currentClient.id}/keys`, body);
+      state.newKeyPlaintext = res.data.plaintext_key;
+      closeModal('modal-new-key');
+      toast('API key issued.');
+      // Refresh keys list
+      const keysRes = await api.get(`/v1/admin/clients/${state.currentClient.id}/keys`);
+      state.keys = keysRes.data || [];
+      renderKeysPage();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      setLoading('nk-submit', false);
+    }
+  }
+
+  // ─── Edit Key modal ───────────────────────────────────────────
+  function openEditKeyModal(keyId) {
+    const k = state.keys.find(x => x.id === keyId);
+    if (!k) return;
+    document.getElementById('ek-id').value = k.id;
+    document.getElementById('ek-label').value = k.label || '';
+    document.getElementById('ek-rpm').value = k.rate_limit_rpm || '';
+    document.getElementById('ek-quota').value = k.scan_quota_per_month != null ? k.scan_quota_per_month : '';
+    const activeChk = document.getElementById('ek-active');
+    activeChk.checked = k.is_active;
+    document.getElementById('ek-active-label').textContent = k.is_active ? 'Active' : 'Inactive';
+    activeChk.onchange = () => {
+      document.getElementById('ek-active-label').textContent = activeChk.checked ? 'Active' : 'Inactive';
+    };
+    document.getElementById('ek-cors').value = (k.cors_origins || []).join('\n');
+    openModal('modal-edit-key');
+  }
+
+  async function submitEditKey() {
+    const id = document.getElementById('ek-id').value;
+    const quotaRaw = document.getElementById('ek-quota').value.trim();
+    const corsRaw = document.getElementById('ek-cors').value.trim();
+    const cors_origins = corsRaw ? corsRaw.split('\n').map(l => l.trim()).filter(Boolean) : null;
+    const body = {
+      label: document.getElementById('ek-label').value.trim() || null,
+      rate_limit_rpm: parseInt(document.getElementById('ek-rpm').value) || undefined,
+      scan_quota_per_month: quotaRaw === '' ? null : parseInt(quotaRaw),
+      is_active: document.getElementById('ek-active').checked,
+      cors_origins,
+    };
+    setLoading('ek-submit', true);
+    try {
+      await api.patch(`/v1/admin/keys/${id}`, body);
+      closeModal('modal-edit-key');
+      toast('Key updated.');
+      const keysRes = await api.get(`/v1/admin/clients/${state.currentClient.id}/keys`);
+      state.keys = keysRes.data || [];
+      renderKeysPage();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      setLoading('ek-submit', false);
+    }
+  }
+
+  // ─── Revoke Key modal ─────────────────────────────────────────
+  function openRevokeKeyModal(keyId, prefix) {
+    document.getElementById('rk-id').value = keyId;
+    document.getElementById('rk-prefix').textContent = prefix + '…';
+    openModal('modal-revoke-key');
+  }
+
+  async function submitRevokeKey() {
+    const id = document.getElementById('rk-id').value;
+    setLoading('rk-submit', true);
+    try {
+      await api.delete(`/v1/admin/keys/${id}`);
+      closeModal('modal-revoke-key');
+      toast('Key revoked.');
+      const keysRes = await api.get(`/v1/admin/clients/${state.currentClient.id}/keys`);
+      state.keys = keysRes.data || [];
+      renderKeysPage();
+    } catch(e) {
+      toast(e.message, 'error');
+    } finally {
+      setLoading('rk-submit', false);
+    }
+  }
+
+  // ─── Settings page ────────────────────────────────────────────
+  function renderSettingsPage() {
+    const content = document.getElementById('main-content');
+    content.innerHTML = `
+      <div class="page-header"><div class="page-title">Settings</div></div>
+      <div class="table-wrap" style="max-width:520px;">
+        <div class="table-header"><div class="table-title">Session</div></div>
+        <div style="padding:20px;">
+          <div class="form-group">
+            <label>Admin Key</label>
+            <div style="display:flex;gap:8px;">
+              <input type="password" id="settings-key-input" value="${escHtml(state.adminKey || '')}" style="font-family:monospace;font-size:12px;" />
+              <button class="btn btn-primary btn-sm" onclick="App.updateKey()">Update</button>
+            </div>
+          </div>
+          <hr class="divider">
+          <button class="btn btn-danger btn-sm" onclick="App.signout()">Sign Out</button>
+        </div>
+      </div>`;
+  }
+
+  function updateKey() {
+    const val = document.getElementById('settings-key-input').value.trim();
+    if (!val) { toast('Key cannot be empty.', 'error'); return; }
+    state.adminKey = val;
+    localStorage.setItem('ptk_admin_key', val);
+    const short = val.length > 12 ? val.substring(0, 8) + '...' + val.slice(-4) : val;
+    document.getElementById('sidebar-key-label').textContent = short;
+    toast('Admin key updated.');
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────
+  function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function timeAgo(iso) {
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+    return `${Math.floor(diff/86400)}d ago`;
+  }
+
+  // Close modal on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  // Enter key in login field
+  document.getElementById('login-key-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+
+  // ─── Init ─────────────────────────────────────────────────────
+  function init() {
+    const stored = localStorage.getItem('ptk_admin_key');
+    if (stored) {
+      state.adminKey = stored;
+      showApp();
+      showPage('clients');
+    } else {
+      showLogin();
+    }
+  }
+
+  // Public API
+  return {
+    login, signout,
+    showPage, showKeys, backToClients,
+    openNewClientModal, submitNewClient,
+    openEditClientModal, submitEditClient,
+    openDeleteClientModal, submitDeleteClient,
+    openNewKeyModal, submitNewKey,
+    openEditKeyModal, submitEditKey,
+    openRevokeKeyModal, submitRevokeKey,
+    openModal, closeModal,
+    clientsPage,
+    copyKey,
+    updateKey,
+    init,
+  };
+})();
+
+App.init();
+</script>
+</body>
+</html>

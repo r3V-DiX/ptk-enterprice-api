@@ -34,6 +34,7 @@ class CreateApiKeyRequest(BaseModel):
     expires_at: datetime | None = None
     # NULL = unlimited; set to e.g. 50 to cap this key at 50 scans per calendar month
     scan_quota_per_month: int | None = None
+    cors_origins: list[str] | None = None
 
     @field_validator("rate_limit_rpm")
     @classmethod
@@ -60,6 +61,45 @@ class CreateApiKeyRequest(BaseModel):
             raise ValueError("At least one scope is required")
         return v
 
+    @field_validator("cors_origins")
+    @classmethod
+    def validate_cors_origins(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        cleaned = []
+        for origin in v:
+            if not (origin.startswith("http://") or origin.startswith("https://")):
+                raise ValueError(f"Each cors_origins entry must start with http:// or https://: {origin!r}")
+            cleaned.append(origin.rstrip("/"))
+        return cleaned
+
+
+class PatchApiKeyRequest(BaseModel):
+    label: str | None = None          # if provided, update it
+    scan_quota_per_month: int | None = None  # -1 means "set to unlimited (NULL)"
+    rate_limit_rpm: int | None = None  # validator: 1-1000 if set
+    is_active: bool | None = None
+    cors_origins: list[str] | None = None  # [] means "clear all restrictions"
+
+    @field_validator("rate_limit_rpm")
+    @classmethod
+    def validate_rate_limit(cls, v: int | None) -> int | None:
+        if v is not None and (v < 1 or v > 1000):
+            raise ValueError("rate_limit_rpm must be between 1 and 1000")
+        return v
+
+    @field_validator("cors_origins")
+    @classmethod
+    def validate_cors_origins(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        cleaned = []
+        for origin in v:
+            if not (origin.startswith("http://") or origin.startswith("https://")):
+                raise ValueError(f"Each cors_origins entry must start with http:// or https://: {origin!r}")
+            cleaned.append(origin.rstrip("/"))
+        return cleaned
+
 
 class ApiKeyCreatedResponse(BaseModel):
     """Returned ONLY on key creation. plaintext_key shown once and never again."""
@@ -72,6 +112,7 @@ class ApiKeyCreatedResponse(BaseModel):
     expires_at: datetime | None
     created_at: datetime
     plaintext_key: str
+    cors_origins: list[str] | None
 
     model_config = {"from_attributes": True}
 
@@ -88,5 +129,6 @@ class ApiKeyResponse(BaseModel):
     created_at: datetime
     last_used_at: datetime | None
     expires_at: datetime | None
+    cors_origins: list[str] | None
 
     model_config = {"from_attributes": True}
