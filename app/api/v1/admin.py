@@ -386,3 +386,41 @@ async def update_client(
 
     logger.info("Client updated client_id=%s changes=%s", client_id, changed)
     return {"request_id": request_id, "data": _client_response(client)}
+
+
+# ---------------------------------------------------------------------------
+# DELETE /v1/admin/clients/{client_id}
+# ---------------------------------------------------------------------------
+@router.delete("/admin/clients/{client_id}", status_code=204)
+async def delete_client(
+    client_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Permanently delete a client and all their data (cascade)."""
+    request_id = get_request_id(request)
+    ok, actor_key_id = await _admin_auth(request, db)
+    if not ok:
+        return error_response("ADMIN_AUTH_REQUIRED", request_id)
+
+    client = db.get(Client, client_id)
+    if client is None:
+        return error_response("CLIENT_NOT_FOUND", request_id)
+
+    write_audit_log(
+        db,
+        actor="admin",
+        action="client_deleted",
+        client_id=client_id,
+        api_key_id=actor_key_id,
+        target_type="client",
+        target_id=client_id,
+        metadata={"company_name": client.company_name, "contact_email": client.contact_email},
+        ip_address=request.client.host if request.client else None,
+        request_id=request_id,
+    )
+
+    db.delete(client)
+    db.commit()
+    logger.info("Admin deleted client client_id=%s", client_id)
+    return Response(status_code=204)

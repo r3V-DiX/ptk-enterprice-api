@@ -120,7 +120,10 @@ async def list_api_logs(
         items = [{
             "id": a.id,
             "client_id": a.client_id,
+            "company_name": a.client.company_name if a.client else None,
             "api_key_id": a.api_key_id,
+            "key_label": a.api_key.label if a.api_key else None,
+            "key_prefix": a.api_key.key_prefix if a.api_key else None,
             "request_id": a.request_id,
             "method": a.method,
             "endpoint": a.endpoint,

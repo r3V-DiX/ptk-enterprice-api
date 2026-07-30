@@ -56,14 +56,15 @@ async def get_api_key(request: Request, db: Session = Depends(get_db)) -> ApiKey
     if api_key is None:
         raise AuthError(error_response("INVALID_API_KEY", request_id))
 
+    # Expose to ApiLoggerMiddleware NOW — before any further raises so even
+    # rate-limited or scope-rejected requests are attributed to the right client.
+    request.state.client_id = api_key.client_id
+    request.state.api_key_id = api_key.id
+
     # Per-key rate limit using the confirmed key id
     if not check_rate_limit(api_key.id, api_key.rate_limit_rpm):
         logger.warning("Rate limit exceeded for key prefix=%s", api_key.key_prefix)
         raise AuthError(error_response("RATE_LIMIT_EXCEEDED", request_id))
-
-    # Expose to ApiLoggerMiddleware (best-effort — middleware reads these after response)
-    request.state.client_id = api_key.client_id
-    request.state.api_key_id = api_key.id
 
     return api_key
 

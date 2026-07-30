@@ -150,6 +150,7 @@ async def list_all_scans(
             items.append({
                 "scan_id": s.id,
                 "client_id": s.client_id,
+                "company_name": s.client.company_name if s.client else None,
                 "target": s.target,
                 "status": s.status,
                 "project_id": s.project_id,
@@ -327,6 +328,8 @@ async def get_client_usage(
         if client is None:
             return None
 
+        month_ago = _now() - timedelta(days=30)
+
         total_scans = db.execute(
             select(func.count()).select_from(ScanJob).where(ScanJob.client_id == client_id)
         ).scalar_one()
@@ -335,8 +338,41 @@ async def get_client_usage(
                 and_(ScanJob.client_id == client_id, ScanJob.status == "completed")
             )
         ).scalar_one()
+        failed_scans = db.execute(
+            select(func.count()).select_from(ScanJob).where(
+                and_(ScanJob.client_id == client_id, ScanJob.status == "failed")
+            )
+        ).scalar_one()
+        scans_this_month = db.execute(
+            select(func.count()).select_from(ScanJob).where(
+                and_(ScanJob.client_id == client_id, ScanJob.created_at >= month_ago)
+            )
+        ).scalar_one()
+
         total_findings = db.execute(
             select(func.count()).select_from(Finding).where(Finding.client_id == client_id)
+        ).scalar_one()
+
+        # Findings by severity
+        severity_rows = db.execute(
+            select(Finding.severity, func.count().label("cnt"))
+            .where(Finding.client_id == client_id)
+            .group_by(Finding.severity)
+        ).all()
+        findings_by_severity = {row.severity: row.cnt for row in severity_rows}
+
+        # API requests this month from usage events
+        api_requests_this_month = db.execute(
+            select(func.count()).select_from(UsageEvent).where(
+                and_(UsageEvent.client_id == client_id, UsageEvent.created_at >= month_ago)
+            )
+        ).scalar_one()
+
+        # Active API keys
+        active_keys = db.execute(
+            select(func.count()).select_from(ApiKey).where(
+                and_(ApiKey.client_id == client_id, ApiKey.is_active.is_(True))
+            )
         ).scalar_one()
 
         events = db.execute(
@@ -352,7 +388,12 @@ async def get_client_usage(
             "tier": client.tier,
             "total_scans": total_scans,
             "completed_scans": completed_scans,
+            "failed_scans": failed_scans,
+            "scans_this_month": scans_this_month,
             "total_findings": total_findings,
+            "findings_by_severity": findings_by_severity,
+            "api_requests_this_month": api_requests_this_month,
+            "active_api_keys": active_keys,
             "recent_events": [{
                 "id": e.id,
                 "event_type": e.event_type,
