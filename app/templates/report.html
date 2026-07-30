@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Scan Report — {{ scan_job.target }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Inter", "Segoe UI", -apple-system, sans-serif;
+  font-size: 13.5px;
+  color: #0f172a;
+  background: #fff;
+  line-height: 1.65;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.page { max-width: 900px; margin: 0 auto; }
+
+/* ── Color tokens ───────────────────────────────────── */
+:root {
+  --c:  #dc2626; --c-bg: #fef2f2; --c-bd: #fca5a5;
+  --h:  #ea580c; --h-bg: #fff7ed; --h-bd: #fdba74;
+  --m:  #d97706; --m-bg: #fffbeb; --m-bd: #fcd34d;
+  --l:  #2563eb; --l-bg: #eff6ff; --l-bd: #93c5fd;
+  --i:  #6b7280; --i-bg: #f9fafb; --i-bd: #d1d5db;
+  --border: #e5e7eb;
+  --muted:  #6b7280;
+  --ink:    #0f172a;
+  --ink2:   #374151;
+  --surf:   #f8fafc;
+  --mono:   "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+/* ── Hero ───────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(150deg, #0f172a 0%, #1e3a5f 60%, #1e3a8a 100%);
+  padding: 48px 52px 40px;
+  color: #fff;
+}
+.hero-eyebrow {
+  font-size: 10.5px; letter-spacing: 3.5px; text-transform: uppercase;
+  color: #7dd3fc; margin-bottom: 16px; font-weight: 700;
+}
+.hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 28px; }
+.hero-left { flex: 1; min-width: 0; }
+.hero-title { font-size: 34px; font-weight: 900; line-height: 1.1; margin-bottom: 5px; }
+.hero-target {
+  font-size: 14.5px; color: #7dd3fc; font-weight: 500; margin-bottom: 18px;
+  word-break: break-all; font-family: var(--mono);
+}
+.hero-meta {
+  display: flex; flex-wrap: wrap; gap: 6px 24px;
+  font-size: 12.5px; color: #cbd5e1;
+}
+.hero-meta span strong { color: #f1f5f9; font-weight: 600; }
+
+/* Grade Badge */
+.grade-badge {
+  flex-shrink: 0;
+  width: 88px; height: 88px; border-radius: 16px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border: 2.5px solid rgba(255,255,255,0.18);
+}
+.grade-badge .g-letter { font-size: 46px; font-weight: 900; line-height: 1; }
+.grade-badge .g-label  { font-size: 9.5px; text-transform: uppercase; letter-spacing: 1.8px; margin-top: 1px; opacity: 0.8; font-weight: 700; }
+.g-A { background: rgba(21,128,61,0.28);  color: #86efac; border-color: rgba(134,239,172,0.35); }
+.g-B { background: rgba(29,78,216,0.28);  color: #93c5fd; border-color: rgba(147,197,253,0.35); }
+.g-C { background: rgba(180,83,9,0.28);   color: #fcd34d; border-color: rgba(252,211,77,0.35);  }
+.g-D { background: rgba(194,65,12,0.28);  color: #fdba74; border-color: rgba(253,186,116,0.35); }
+.g-F { background: rgba(185,28,28,0.28);  color: #fca5a5; border-color: rgba(252,165,165,0.35); }
+
+/* Hero bottom stats */
+.hero-divider { height: 1px; background: rgba(255,255,255,0.1); margin: 28px 0 22px; }
+.hero-stats { display: flex; gap: 32px; }
+.hero-stat .n { font-size: 30px; font-weight: 900; line-height: 1; }
+.hero-stat .l { font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px; color: #94a3b8; margin-top: 3px; font-weight: 600; }
+.hs-c { color: #fca5a5; } .hs-h { color: #fdba74; } .hs-m { color: #fcd34d; }
+.hs-l { color: #93c5fd; } .hs-i { color: #cbd5e1; }
+
+/* ── Body wrapper ───────────────────────────────────── */
+.body { padding: 44px 52px; }
+
+/* ── Section header ─────────────────────────────────── */
+.sec-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.sec-num {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  background: #0f172a; color: #7dd3fc;
+  padding: 3px 10px; border-radius: 5px; letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.sec-title {
+  font-size: 11.5px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2.5px; color: var(--ink); white-space: nowrap;
+}
+.sec-rule { flex: 1; height: 1px; background: var(--border); }
+.section { margin-bottom: 52px; }
+
+/* ── Executive Summary ──────────────────────────────── */
+.exec-wrap {
+  border: 1.5px solid var(--border); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+}
+.exec-cols { display: grid; grid-template-columns: 1.1fr 1fr 1fr; }
+.exec-col { padding: 22px 22px; border-right: 1.5px solid var(--border); }
+.exec-col:last-child { border-right: none; }
+.exec-lbl {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--muted); margin-bottom: 13px;
+}
+
+/* Risk chips */
+.risk-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.chip {
+  display: inline-flex; align-items: center; padding: 4px 12px;
+  border-radius: 20px; font-size: 12px; font-weight: 700;
+  border: 1.5px solid; white-space: nowrap;
+}
+.chip-c { color: var(--c); border-color: var(--c-bd); background: var(--c-bg); }
+.chip-h { color: var(--h); border-color: var(--h-bd); background: var(--h-bg); }
+.chip-m { color: var(--m); border-color: var(--m-bd); background: var(--m-bg); }
+.chip-l { color: var(--l); border-color: var(--l-bd); background: var(--l-bg); }
+.chip-i { color: var(--i); border-color: var(--i-bd); background: var(--i-bg); }
+
+/* Mini bar chart */
+.mini-chart { }
+.brow { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.blbl { width: 58px; font-size: 12px; font-weight: 600; text-transform: capitalize; color: var(--ink2); }
+.bout { flex: 1; background: #f1f5f9; border-radius: 3px; height: 13px; overflow: hidden; }
+.bin  { height: 100%; border-radius: 3px; }
+.bc   { background: var(--c); } .bh { background: var(--h); }
+.bm   { background: var(--m); } .bl { background: var(--l); } .bi { background: var(--i); }
+.bnum { font-size: 12px; color: var(--muted); width: 20px; text-align: right; font-weight: 700; font-family: var(--mono); }
+
+/* Scan detail rows */
+.drows { display: flex; flex-direction: column; gap: 9px; }
+.drow  { font-size: 13px; display: flex; flex-direction: column; gap: 1px; }
+.dk    { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.dv    { font-weight: 600; color: var(--ink); }
+.dv-ok { color: #16a34a; }
+.dv-mono { font-family: var(--mono); font-size: 11px; word-break: break-all; color: var(--ink2); }
+
+/* Overall risk */
+.risk-badge-lg {
+  display: inline-block; padding: 7px 22px; border-radius: 8px;
+  font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 10px;
+}
+.rb-c { background: var(--c); } .rb-h { background: var(--h); }
+.rb-m { background: var(--m); } .rb-l { background: var(--l); } .rb-i { background: var(--i); }
+.risk-sub { font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+/* Grade mini inside exec */
+.grade-row { display: flex; align-items: center; gap: 11px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.grade-mini {
+  width: 46px; height: 46px; border-radius: 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.grade-mini .gl { font-size: 24px; font-weight: 900; line-height: 1; }
+.grade-mini .gs { font-size: 8.5px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-top: 1px; }
+.gm-A { background: #dcfce7; color: #16a34a; }
+.gm-B { background: #dbeafe; color: #1d4ed8; }
+.gm-C { background: #fef3c7; color: #d97706; }
+.gm-D { background: #ffedd5; color: #ea580c; }
+.gm-F { background: #fee2e2; color: #dc2626; }
+.grade-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+/* Count strip */
+.exec-counts { display: grid; grid-template-columns: repeat(5,1fr); border-top: 1.5px solid var(--border); text-align: center; }
+.ecc { padding: 16px 8px; }
+.ecc:not(:last-child) { border-right: 1.5px solid var(--border); }
+.ecc .n { font-size: 32px; font-weight: 900; line-height: 1; font-family: var(--mono); }
+.ecc .l { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-top: 4px; font-weight: 700; }
+.ec-c { color: var(--c); } .ec-h { color: var(--h); } .ec-m { color: var(--m); }
+.ec-l { color: var(--l); } .ec-i { color: var(--i); }
+
+/* ── Scan info cards ────────────────────────────────── */
+.info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 11px; }
+.icard { border: 1.5px solid var(--border); border-radius: 9px; padding: 15px 17px; background: var(--surf); }
+.icard-lbl { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 5px; }
+.icard-val { font-size: 14px; font-weight: 700; color: var(--ink); word-break: break-all; }
+.icard-val.mono { font-family: var(--mono); font-size: 11px; }
+.icard-val.ok   { color: #16a34a; }
+
+/* ── Severity badge ─────────────────────────────────── */
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 4px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.8px; color: #fff; white-space: nowrap;
+}
+.badge-critical { background: var(--c); }
+.badge-high     { background: var(--h); }
+.badge-medium   { background: var(--m); }
+.badge-low      { background: var(--l); }
+.badge-info     { background: var(--i); }
+
+/* ── Findings overview table ────────────────────────── */
+.tbl-wrap { border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl thead tr { background: #0f172a; }
+.tbl th { padding: 11px 14px; color: #cbd5e1; text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+.tbl td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.tbl tbody tr:last-child td { border-bottom: none; }
+.tbl tbody tr:hover td { background: var(--surf); }
+.row-n { color: var(--muted); font-size: 11.5px; font-weight: 600; font-family: var(--mono); }
+.cvss-pill { display: inline-block; padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 800; color: #fff; font-family: var(--mono); }
+.cp-c { background: var(--c); } .cp-h { background: var(--h); }
+.cp-m { background: var(--m); } .cp-l { background: var(--l); } .cp-n { background: var(--i); }
+
+/* ── Severity group header ──────────────────────────── */
+.sev-group { margin-bottom: 32px; }
+.sev-ghdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; border-radius: 9px 9px 0 0;
+  border: 1.5px solid transparent; border-bottom: none;
+}
+.sgh-critical { background: #fef2f2; border-color: #fca5a5; }
+.sgh-high     { background: #fff3e8; border-color: #fdba74; }
+.sgh-medium   { background: #fffbeb; border-color: #fcd34d; }
+.sgh-low      { background: #eff6ff; border-color: #93c5fd; }
+.sgh-info     { background: #f9fafb; border-color: #d1d5db; }
+.sev-gname { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; display: flex; align-items: center; gap: 10px; }
+.sgn-critical { color: #b91c1c; } .sgn-high { color: #c2410c; }
+.sgn-medium   { color: #92400e; } .sgn-low  { color: #1d4ed8; } .sgn-info { color: var(--muted); }
+.sev-gcnt { font-size: 11px; font-weight: 700; padding: 3px 11px; border-radius: 20px; color: #fff; }
+.sgc-critical { background: var(--c); } .sgc-high { background: var(--h); }
+.sgc-medium   { background: var(--m); } .sgc-low  { background: var(--l); } .sgc-info { background: var(--i); }
+
+/* ── Finding card ───────────────────────────────────── */
+.fcard { border: 1.5px solid; border-top: none; background: #fff; }
+.fcard:last-child { border-radius: 0 0 9px 9px; }
+.fc-critical { border-color: var(--c-bd); }
+.fc-high     { border-color: var(--h-bd); }
+.fc-medium   { border-color: var(--m-bd); }
+.fc-low      { border-color: var(--l-bd); }
+.fc-info     { border-color: var(--i-bd); }
+
+/* Card head */
+.fcard-head {
+  display: flex; align-items: center; gap: 11px;
+  padding: 14px 22px 12px;
+  border-left: 5px solid transparent;
+  border-bottom: 1px solid var(--border);
+}
+.fhl-critical { border-left-color: var(--c); background: #fffafa; }
+.fhl-high     { border-left-color: var(--h); background: #fffaf6; }
+.fhl-medium   { border-left-color: var(--m); background: #fffef5; }
+.fhl-low      { border-left-color: var(--l); background: #f8fbff; }
+.fhl-info     { border-left-color: var(--i); background: var(--surf); }
+
+.fcard-num   { font-size: 11px; color: var(--muted); font-weight: 700; min-width: 34px; font-family: var(--mono); }
+.fcard-title { font-size: 15px; font-weight: 700; color: var(--ink); flex: 1; line-height: 1.35; }
+
+/* Card body */
+.fcard-body { padding: 18px 22px 22px 26px; }
+
+/* Meta pills */
+.mpills { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+.mpill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 5px;
+  font-size: 12px; background: var(--surf); border: 1px solid var(--border); color: var(--muted);
+}
+.mpill strong { color: var(--ink2); font-size: 11px; font-weight: 700; }
+.mpill.mono { font-family: var(--mono); font-size: 11px; }
+
+/* Field label + content */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+.flbl {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2px; color: #9ca3af; margin-bottom: 7px;
+  display: flex; align-items: center; gap: 8px;
+}
+.flbl::after { content: ''; flex: 1; max-width: 48px; height: 1.5px; background: #f3f4f6; border-radius: 1px; }
+.ftxt { font-size: 13.5px; color: var(--ink2); line-height: 1.75; }
+
+/* Recommendation — prose: clean green box, not monospace */
+.rec-block {
+  border-left: 4px solid #16a34a;
+  background: #f0fdf4;
+  border-radius: 0 7px 7px 0;
+  padding: 13px 17px;
+  font-size: 13.5px; color: #14532d; line-height: 1.75;
+}
+
+/* ── Evidence: port chips ───────────────────────────── */
+.port-chips { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0; }
+.port-chip {
+  display: flex; flex-direction: column; align-items: center;
+  background: #1e293b; border: 1.5px solid #334155;
+  border-radius: 9px; padding: 10px 18px; min-width: 72px;
+  gap: 2px;
+}
+.port-chip .pnum { font-size: 18px; font-weight: 900; color: #fb923c; font-family: var(--mono); line-height: 1; }
+.port-chip .psvc { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+
+/* ── Evidence: header lines ─────────────────────────── */
+.hdr-evidence {
+  background: #1e293b; border-radius: 8px; overflow: hidden;
+  border: 1px solid #334155;
+}
+.hdr-ev-row {
+  display: flex; align-items: baseline;
+  padding: 9px 18px; border-bottom: 1px solid #2d3f52;
+  font-family: var(--mono); font-size: 12.5px; gap: 0;
+}
+.hdr-ev-row:last-child { border-bottom: none; }
+.hev-k { color: #7dd3fc; min-width: 230px; flex-shrink: 0; }
+.hev-v { color: #86efac; }
+.hev-missing { color: #f87171; font-style: italic; }
+
+/* ── Evidence: generic ──────────────────────────────── */
+.ev-generic {
+  background: #1e293b; color: #e2e8f0;
+  border-radius: 8px; padding: 14px 18px;
+  font-family: var(--mono); font-size: 12px;
+  white-space: pre-wrap; overflow-wrap: break-word;
+  line-height: 1.7; border: 1px solid #334155;
+}
+
+/* ── Coverage ───────────────────────────────────────── */
+.tool-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.tcip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe;
+  border-radius: 7px; padding: 5px 14px; font-size: 12.5px; font-weight: 600;
+}
+.tdot { width: 7px; height: 7px; border-radius: 50%; background: #3b82f6; flex-shrink: 0; }
+
+.cov-wrap { border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+.cov-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cov-tbl th { background: var(--surf); border-bottom: 1.5px solid var(--border); padding: 11px 15px; text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); font-weight: 800; }
+.cov-tbl td { padding: 11px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.cov-tbl tr:last-child td { border-bottom: none; }
+.cov-ok { color: #16a34a; font-weight: 700; font-size: 13px; }
+.cov-sev-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.cov-chip { display: inline-block; padding: 2px 9px; border-radius: 4px; font-size: 11.5px; font-weight: 700; color: #fff; font-family: var(--mono); }
+
+/* ── Appendix ───────────────────────────────────────── */
+.appendix {
+  background: #1e293b; color: #e2e8f0;
+  border-radius: 10px; padding: 22px;
+  font-family: var(--mono); font-size: 12px;
+  white-space: pre-wrap; overflow-wrap: break-word;
+  max-height: 500px; overflow-y: auto; line-height: 1.7;
+  border: 1px solid #334155;
+}
+
+/* ── Footer ─────────────────────────────────────────── */
+.footer {
+  margin-top: 8px; padding: 18px 0;
+  border-top: 1.5px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; color: var(--muted);
+}
+.footer-left { display: flex; flex-direction: column; gap: 2px; }
+.footer-grade { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.fgrade-box {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 6px;
+  font-size: 19px; font-weight: 900; font-family: var(--mono);
+}
+
+/* ── Print ──────────────────────────────────────────── */
+@media print {
+  .fcard   { page-break-inside: avoid; }
+  .sev-group { page-break-inside: avoid; }
+  .appendix { max-height: none; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+{# ── Compute totals & grade ── #}
+{% set total = severity_counts.critical + severity_counts.high + severity_counts.medium + severity_counts.low + severity_counts.info %}
+
+{% if severity_counts.critical > 0 %}
+  {% set grade = "F" %}{% set overall_risk = "critical" %}
+  {% set risk_label = "Critical Risk" %}
+  {% set risk_desc = "Critical vulnerabilities present. Immediate remediation required." %}
+{% elif severity_counts.high > 0 %}
+  {% set grade = "D" %}{% set overall_risk = "high" %}
+  {% set risk_label = "High Risk" %}
+  {% set risk_desc = "High severity issues pose significant security risk. Address urgently." %}
+{% elif severity_counts.medium > 0 %}
+  {% set grade = "C" %}{% set overall_risk = "medium" %}
+  {% set risk_label = "Medium Risk" %}
+  {% set risk_desc = "Medium severity findings detected. Address in your next sprint." %}
+{% elif severity_counts.low > 0 %}
+  {% set grade = "B" %}{% set overall_risk = "low" %}
+  {% set risk_label = "Low Risk" %}
+  {% set risk_desc = "Only low severity findings. Address as routine maintenance." %}
+{% else %}
+  {% set grade = "A" %}{% set overall_risk = "info" %}
+  {% set risk_label = "Clean" %}
+  {% set risk_desc = "No significant vulnerabilities identified." %}
+{% endif %}
+
+{# ── Port service names ── #}
+{% set port_svc = {21:"FTP",22:"SSH",23:"Telnet",25:"SMTP",53:"DNS",80:"HTTP",110:"POP3",143:"IMAP",443:"HTTPS",465:"SMTPS",587:"SMTP",3306:"MySQL",3389:"RDP",5432:"PgSQL",6379:"Redis",8080:"HTTP",8443:"HTTPS",27017:"Mongo"} %}
+
+{# ── Pre-compute max for bar chart ── #}
+{% set max_count = [severity_counts.critical, severity_counts.high, severity_counts.medium, severity_counts.low, severity_counts.info] | max %}
+{% set max_count = max_count if max_count > 0 else 1 %}
+
+<!-- ═══ HERO ══════════════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-eyebrow">Security Scan Report</div>
+  <div class="hero-top">
+    <div class="hero-left">
+      <div class="hero-title">{{ client.company_name }}</div>
+      <div class="hero-target">{{ scan_job.target }}</div>
+      <div class="hero-meta">
+        <span><strong>Date</strong>&nbsp; {{ scan_job.created_at }}</span>
+        <span><strong>Findings</strong>&nbsp; {{ total }}</span>
+        {% if scan_job.tools_run %}<span><strong>Tools</strong>&nbsp; {{ scan_job.tools_run | length }} modules</span>{% endif %}
+      </div>
+    </div>
+    <div class="grade-badge g-{{ grade }}">
+      <div class="g-letter">{{ grade }}</div>
+      <div class="g-label">Risk Grade</div>
+    </div>
+  </div>
+  <div class="hero-divider"></div>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="n hs-c">{{ severity_counts.critical }}</div><div class="l">Critical</div></div>
+    <div class="hero-stat"><div class="n hs-h">{{ severity_counts.high }}</div><div class="l">High</div></div>
+    <div class="hero-stat"><div class="n hs-m">{{ severity_counts.medium }}</div><div class="l">Medium</div></div>
+    <div class="hero-stat"><div class="n hs-l">{{ severity_counts.low }}</div><div class="l">Low</div></div>
+    <div class="hero-stat"><div class="n hs-i">{{ severity_counts.info }}</div><div class="l">Info</div></div>
+  </div>
+</div>
+
+<!-- ═══ BODY ═══════════════════════════════════════════ -->
+<div class="body">
+
+<!-- ──────────── 01 Executive Summary ──────────── -->
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div class="sec-title">Executive Summary</div>
+    <div class="sec-rule"></div>
+  </div>
+
+  <div class="exec-wrap">
+    <div class="exec-cols">
+
+      <!-- Risk overview + bar chart -->
+      <div class="exec-col">
+        <div class="exec-lbl">Risk Overview</div>
+        <div class="risk-chips">
+          {% if severity_counts.critical > 0 %}<span class="chip chip-c">{{ severity_counts.critical }} Critical</span>{% endif %}
+          {% if severity_counts.high     > 0 %}<span class="chip chip-h">{{ severity_counts.high }} High</span>{% endif %}
+          {% if severity_counts.medium   > 0 %}<span class="chip chip-m">{{ severity_counts.medium }} Medium</span>{% endif %}
+          {% if severity_counts.low      > 0 %}<span class="chip chip-l">{{ severity_counts.low }} Low</span>{% endif %}
+          {% if severity_counts.info     > 0 %}<span class="chip chip-i">{{ severity_counts.info }} Info</span>{% endif %}
+        </div>
+        <div class="mini-chart">
+          {% for sev, cls, cnt in [
+            ('Critical','bc', severity_counts.critical),
+            ('High',    'bh', severity_counts.high),
+            ('Medium',  'bm', severity_counts.medium),
+            ('Low',     'bl', severity_counts.low),
+            ('Info',    'bi', severity_counts.info)
+          ] %}
+          <div class="brow">
+            <span class="blbl">{{ sev }}</span>
+            <div class="bout"><div class="bin {{ cls }}" style="width:{{ [((cnt/max_count)*100)|int,2]|max if cnt>0 else 0 }}%"></div></div>
+            <span class="bnum">{{ cnt }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Scan details -->
+      <div class="exec-col">
+        <div class="exec-lbl">Scan Details</div>
+        <div class="drows">
+          <div class="drow"><span class="dk">URL</span><span class="dv">{{ scan_job.target }}</span></div>
+          <div class="drow"><span class="dk">Date</span><span class="dv">{{ scan_job.created_at }}</span></div>
+          <div class="drow"><span class="dk">Status</span><span class="dv dv-ok">{{ scan_job.status | capitalize }}</span></div>
+          {% if scan_job.tools_run %}
+          <div class="drow"><span class="dk">Tools Run</span><span class="dv">{{ scan_job.tools_run | length }} modules</span></div>
+          {% endif %}
+          <div class="drow"><span class="dk">Total Findings</span><span class="dv">{{ total }}</span></div>
+          <div class="drow"><span class="dk">Scan ID</span><span class="dv dv-mono">{{ scan_job.id }}</span></div>
+        </div>
+      </div>
+
+      <!-- Overall risk + grade -->
+      <div class="exec-col">
+        <div class="exec-lbl">Overall Risk</div>
+        <div class="risk-badge-lg rb-{{ overall_risk }}">{{ risk_label }}</div>
+        <div class="risk-sub">{{ risk_desc }}</div>
+        <div class="grade-row">
+          <div class="grade-mini gm-{{ grade }}">
+            <div class="gl">{{ grade }}</div>
+            <div class="gs">Grade</div>
+          </div>
+          <div class="grade-desc">
+            {% if grade == "A" %}Excellent posture. No significant issues found.
+            {% elif grade == "B" %}Good posture. Minor issues to address.
+            {% elif grade == "C" %}Fair. Medium severity issues need attention.
+            {% elif grade == "D" %}Poor. High severity vulnerabilities present.
+            {% else %}Critical. Immediate action required.{% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /exec-cols -->
+
+    <!-- Count strip -->
+    <div class="exec-counts">
+      <div class="ecc"><div class="n ec-c">{{ severity_counts.critical }}</div><div class="l">Critical</div></div>
+      <div class="ecc"><div class="n ec-h">{{ severity_counts.high }}</div><div class="l">High</div></div>
+      <div class="ecc"><div class="n ec-m">{{ severity_counts.medium }}</div><div class="l">Medium</div></div>
+      <div class="ecc"><div class="n ec-l">{{ severity_counts.low }}</div><div class="l">Low</div></div>
+      <div class="ecc"><div class="n ec-i">{{ severity_counts.info }}</div><div class="l">Info</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────── 02 Scan Information ──────────── -->
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-num">02</div>
+    <div class="sec-title">Scan Information</div>
+    <div class="sec-rule"></div>
+  </div>
+  <div class="info-grid">
+    <div class="icard"><div class="icard-lbl">Target</div><div class="icard-val">{{ scan_job.target }}</div></div>
+    <div class="icard"><div class="icard-lbl">Client</div><div class="icard-val">{{ client.company_name }}</div></div>
+    <div class="icard"><div class="icard-lbl">Scan ID</div><div class="icard-val mono">{{ scan_job.id }}</div></div>
+    <div class="icard"><div class="icard-lbl">Status</div><div class="icard-val ok">{{ scan_job.status | capitalize }}</div></div>
+    <div class="icard"><div class="icard-lbl">Scan Date</div><div class="icard-val" style="font-size:13px">{{ scan_job.created_at }}</div></div>
+    <div class="icard"><div class="icard-lbl">Report Generated</div><div class="icard-val" style="font-size:13px">{{ generated_at }}</div></div>
+  </div>
+</div>
+
+<!-- ──────────── 03 Findings Overview ──────────── -->
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-num">03</div>
+    <div class="sec-title">Findings Overview</div>
+    <div class="sec-rule"></div>
+  </div>
+
+  {% if not findings %}
+  <p style="color:var(--muted);font-style:italic;padding:20px 0">No findings identified in this scan.</p>
+  {% else %}
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th style="width:38px">#</th>
+          <th style="width:98px">Severity</th>
+          <th>Finding</th>
+          <th style="width:124px">Tool</th>
+          <th style="width:64px">CVSS</th>
+          <th style="width:92px">CWE</th>
+        </tr>
+      </thead>
+      <tbody>
+        {# findings already sorted by severity from Python render_html() #}
+        {% for f in findings %}
+        <tr>
+          <td class="row-n">{{ loop.index }}</td>
+          <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
+          <td style="font-weight:600;font-size:13px;color:var(--ink)">{{ f.title }}</td>
+          <td style="font-family:var(--mono);font-size:11.5px;color:var(--muted)">{{ f.tool }}</td>
+          <td>
+            {% if f.cvss_score %}
+              {% set cv = f.cvss_score|float %}
+              <span class="cvss-pill {% if cv>=9 %}cp-c{% elif cv>=7 %}cp-h{% elif cv>=4 %}cp-m{% else %}cp-l{% endif %}">{{ f.cvss_score }}</span>
+            {% else %}<span style="color:var(--muted)">—</span>{% endif %}
+          </td>
+          <td style="font-size:12px;color:var(--muted);font-family:var(--mono)">{{ f.cwe_id if f.cwe_id else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ──────────── 04 Security Findings ──────────── -->
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-num">04</div>
+    <div class="sec-title">Security Findings</div>
+    <div class="sec-rule"></div>
+  </div>
+
+  {% if not findings %}
+  <p style="color:var(--muted);font-style:italic;padding:20px 0">No findings to display.</p>
+  {% else %}
+
+  {# global counter across all severity groups #}
+  {% set ns = namespace(idx=0) %}
+
+  {% for sev in ['critical','high','medium','low','info'] %}
+  {% set group = findings | selectattr('severity','equalto',sev) | list %}
+  {% if group %}
+  <div class="sev-group">
+
+    <div class="sev-ghdr sgh-{{ sev }}">
+      <div class="sev-gname sgn-{{ sev }}">
+        <span class="badge badge-{{ sev }}">{{ sev }}</span>
+        {{ sev | upper }} FINDINGS
+      </div>
+      <span class="sev-gcnt sgc-{{ sev }}">{{ group|length }} finding{% if group|length != 1 %}s{% endif %}</span>
+    </div>
+
+    {% for f in group %}
+    {% set ns.idx = ns.idx + 1 %}
+    <div class="fcard fc-{{ sev }}">
+
+      <div class="fcard-head fhl-{{ sev }}">
+        <span class="fcard-num">F-{{ "%02d"|format(ns.idx) }}</span>
+        <span class="badge badge-{{ sev }}">{{ sev }}</span>
+        <span class="fcard-title">{{ f.title }}</span>
+      </div>
+
+      <div class="fcard-body">
+
+        <!-- Meta row -->
+        <div class="mpills">
+          <span class="mpill mono"><strong>Tool</strong>&nbsp;{{ f.tool }}</span>
+          {% if f.cvss_score %}<span class="mpill"><strong>CVSS</strong>&nbsp;{{ f.cvss_score }}</span>{% endif %}
+          {% if f.cwe_id %}<span class="mpill mono"><strong>CWE</strong>&nbsp;{{ f.cwe_id }}</span>{% endif %}
+          {% if f.owasp_category %}<span class="mpill"><strong>OWASP</strong>&nbsp;{{ f.owasp_category }}</span>{% endif %}
+        </div>
+
+        <!-- What We Found -->
+        {% if f.description %}
+        <div class="field">
+          <div class="flbl">What We Found</div>
+          <div class="ftxt">{{ f.description }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Evidence — smart render -->
+        {% if f.evidence_json %}
+        <div class="field">
+          <div class="flbl">Evidence</div>
+
+          {% if f.evidence_json is mapping and 'ports' in f.evidence_json %}
+            {# Port chips #}
+            <div class="port-chips">
+              {% for p in f.evidence_json.ports %}
+              <div class="port-chip">
+                <div class="pnum">{{ p }}</div>
+                <div class="psvc">{{ port_svc[p] if p in port_svc else 'TCP' }}</div>
+              </div>
+              {% endfor %}
+            </div>
+
+          {% elif f.evidence_json is mapping and 'missing' in f.evidence_json %}
+            {# Missing security headers #}
+            <div class="hdr-evidence">
+              {% for h in f.evidence_json.missing %}
+              <div class="hdr-ev-row">
+                <span class="hev-k">{{ h }}:</span>
+                <span class="hev-missing">&nbsp;not set</span>
+              </div>
+              {% endfor %}
+            </div>
+
+          {% elif f.evidence_json is mapping and 'header' in f.evidence_json %}
+            {# Single header value #}
+            <div class="hdr-evidence">
+              {% set parts = f.evidence_json.header.split(': ', 1) %}
+              <div class="hdr-ev-row">
+                <span class="hev-k">{{ parts[0] }}:</span>
+                <span class="hev-v">&nbsp;{{ parts[1] if parts|length > 1 else '' }}</span>
+              </div>
+            </div>
+
+          {% else %}
+            {# Generic JSON #}
+            <div class="ev-generic">{{ f.evidence_json | tojson(indent=2) }}</div>
+          {% endif %}
+
+        </div>
+        {% endif %}
+
+        <!-- Recommendation -->
+        {% if f.remediation %}
+        <div class="field">
+          <div class="flbl">Recommendation</div>
+          <div class="rec-block">{{ f.remediation }}</div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  {% endif %}
+</div>
+
+<!-- ──────────── 05 Scan Coverage ──────────── -->
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-num">05</div>
+    <div class="sec-title">Scan Coverage</div>
+    <div class="sec-rule"></div>
+  </div>
+
+  {% if scan_job.tools_run %}
+  <div class="tool-chips">
+    {% for t in scan_job.tools_run %}
+    <span class="tcip"><span class="tdot"></span>{{ t }}</span>
+    {% endfor %}
+  </div>
+  <div class="cov-wrap">
+    <table class="cov-tbl">
+      <thead><tr><th>Module</th><th>Status</th><th>Findings by Severity</th></tr></thead>
+      <tbody>
+        {% for t in scan_job.tools_run %}
+        {% set tf = findings | selectattr('tool','equalto',t) | list %}
+        <tr>
+          <td style="font-family:var(--mono);font-size:13px;font-weight:600">{{ t }}</td>
+          <td><span class="cov-ok">✓ Completed</span></td>
+          <td>
+            {% set tc = tf | length %}
+            {% if tc == 0 %}
+              <span style="color:var(--muted);font-size:12px">No findings</span>
+            {% else %}
+            <div class="cov-sev-chips">
+              {% for sev in ['critical','high','medium','low','info'] %}
+              {% set sc_t = tf | selectattr('severity','equalto',sev) | list | length %}
+              {% if sc_t > 0 %}
+              <span class="cov-chip badge-{{ sev }}">{{ sc_t }} {{ sev }}</span>
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:var(--muted);font-style:italic">No tool coverage data available.</p>
+  {% endif %}
+</div>
+
+<!-- ──────────── 06 Appendix ──────────── -->
+<div class="section">
+  <div class="sec-hdr">
+    <div class="sec-num">06</div>
+    <div class="sec-title">Appendix — Raw Data</div>
+    <div class="sec-rule"></div>
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:13px">Machine-readable export — {{ findings|length }} finding(s) total.</p>
+  <div class="appendix">{{ findings_json }}</div>
+</div>
+
+<!-- ──────────── Footer ──────────── -->
+<div class="footer">
+  <div class="footer-left">
+    <span style="font-weight:600;color:var(--ink)">{{ client.company_name }} — Automated Security Assessment</span>
+    <span>{{ scan_job.target }}</span>
+  </div>
+  <div class="footer-grade">
+    <div class="fgrade-box gm-{{ grade }}">{{ grade }}</div>
+    <div style="display:flex;flex-direction:column;gap:1px;text-align:right">
+      <span style="font-weight:700;color:var(--ink)">{{ risk_label }}</span>
+      <span style="font-size:11px">{{ generated_at }}</span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /body -->
+</div><!-- /page -->
+</body>
+</html>
