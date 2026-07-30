@@ -121,7 +121,7 @@ async def verify_otp_endpoint(
         secure=True,
         samesite="none",
     )
-    return {"request_id": request_id, "data": {"message": "Authenticated.", "email": email}}
+    return {"request_id": request_id, "data": {"message": "Authenticated.", "email": email, "session_token": token}}
 
 
 # ── POST /v1/internal/auth/logout ─────────────────────────────────────────────
