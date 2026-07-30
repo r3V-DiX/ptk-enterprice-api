@@ -1,6 +1,7 @@
 .env
 .env.prod
 *.pem
+cloud/
 venv/
 __pycache__/
 *.pyc
