@@ -1,0 +1,343 @@
+{
+  "info": {
+    "name": "Pentoolkit Enterprise API",
+    "description": "Client-facing API for Pentoolkit Enterprise.\n\n**Base URL:** `https://ext-api.pentoolkit.com`\n\n**Authentication:** Set your API key as a Bearer token in the `api_key` collection variable.\n\n**Quick Start:**\n1. Set the `api_key` variable to your key\n2. Run \"Check Key & Quota\" to verify access\n3. Submit a scan with \"Submit Scan\"\n4. Poll \"Get Scan\" until status is `completed`\n5. Fetch findings with \"List Findings\"",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{api_key}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://ext-api.pentoolkit.com", "type": "string" },
+    { "key": "api_key",  "value": "", "type": "string", "description": "Your API key — set this before making any requests" },
+    { "key": "scan_id",  "value": "", "type": "string", "description": "Auto-populated after Submit Scan" },
+    { "key": "project_id", "value": "", "type": "string", "description": "Auto-populated after Create Project" },
+    { "key": "asset_id",   "value": "", "type": "string", "description": "Auto-populated after Create Asset" }
+  ],
+  "item": [
+    {
+      "name": "Key & Quota",
+      "description": "Check your API key status and remaining scan quota.",
+      "item": [
+        {
+          "name": "Check Key & Quota",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/v1/usage", "host": ["{{base_url}}"], "path": ["v1", "usage"] },
+            "description": "Returns your quota (scan_quota_per_month), scans used this month, scans remaining, key expiry, and rate limit.\n\nRequired scope: `usage:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "List Usage Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/usage/events?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "usage", "events"],
+              "query": [
+                { "key": "limit",  "value": "20",  "description": "Max results (1–200)" },
+                { "key": "offset", "value": "0",   "description": "Pagination offset" }
+              ]
+            },
+            "description": "Returns a log of all API activity events for your key.\n\nRequired scope: `usage:read`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Scans",
+      "description": "Submit scans and retrieve results.",
+      "item": [
+        {
+          "name": "Submit Scan",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.scan_id) {",
+                  "  pm.collectionVariables.set('scan_id', res.data.scan_id);",
+                  "  console.log('scan_id set to:', res.data.scan_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"target\": \"example.com\",\n  \"project_id\": null,\n  \"asset_id\": null,\n  \"idempotency_key\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/v1/scans", "host": ["{{base_url}}"], "path": ["v1", "scans"] },
+            "description": "Submit a new scan against a target.\n\n**Fields:**\n- `target` *(required)* — domain, IP, or URL to scan (max 2048 chars)\n- `project_id` *(optional)* — associate with a project\n- `asset_id` *(optional)* — associate with a registered asset\n- `idempotency_key` *(optional)* — unique string; re-submitting the same key returns the existing scan (200) instead of creating a duplicate\n\n**Returns:** `scan_id`, `status: queued`, and scan metadata.\n\nRequired scope: `scan:write`"
+          },
+          "response": []
+        },
+        {
+          "name": "List Scans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans"],
+              "query": [
+                { "key": "limit",  "value": "20", "description": "Max results (1–100)" },
+                { "key": "offset", "value": "0",  "description": "Pagination offset" }
+              ]
+            },
+            "description": "Returns all scans for your client, newest first.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Scan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/v1/scans/{{scan_id}}", "host": ["{{base_url}}"], "path": ["v1", "scans", "{{scan_id}}"] },
+            "description": "Get full details for a single scan including findings summary.\n\n**Scan statuses:**\n- `queued` — waiting to start\n- `initializing` — setting up tools\n- `running` — scan in progress\n- `aggregating` — collecting results\n- `completed` — done, findings available\n- `failed` — scan failed\n- `cancelled` — cancelled by admin\n\nPoll this endpoint until status is `completed` or `failed`.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Scan Report (HTML)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id}}/report?format=html",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "{{scan_id}}", "report"],
+              "query": [{ "key": "format", "value": "html" }]
+            },
+            "description": "Get the scan report as HTML.\n\nOnly available once the scan status is `completed`. Returns 409 if scan is still running.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Scan Report (PDF)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/scans/{{scan_id}}/report?format=pdf",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "scans", "{{scan_id}}", "report"],
+              "query": [{ "key": "format", "value": "pdf" }]
+            },
+            "description": "Get the scan report as PDF.\n\nOnly available once the scan status is `completed`. Returns 409 if scan is still running.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Scan",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/v1/scans/{{scan_id}}", "host": ["{{base_url}}"], "path": ["v1", "scans", "{{scan_id}}"] },
+            "description": "Permanently delete a scan and all its findings.\n\nReturns 204 on success.\n\nRequired scope: `scan:write`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Findings",
+      "description": "Query vulnerabilities discovered by scans.",
+      "item": [
+        {
+          "name": "List Findings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "findings"],
+              "query": [
+                { "key": "scan_id",  "value": "", "description": "Filter by scan ID", "disabled": true },
+                { "key": "severity", "value": "", "description": "Filter: critical / high / medium / low / info", "disabled": true },
+                { "key": "tool",     "value": "", "description": "Filter by tool name (e.g. nmap, nuclei)", "disabled": true },
+                { "key": "status",   "value": "", "description": "Filter: open / resolved / false_positive", "disabled": true },
+                { "key": "limit",    "value": "20", "description": "Max results (1–100)" },
+                { "key": "offset",   "value": "0",  "description": "Pagination offset" }
+              ]
+            },
+            "description": "List all findings across all scans. Use filters to narrow down.\n\n**Severity values:** `critical`, `high`, `medium`, `low`, `info`\n\n**Examples:**\n- All critical findings: add `severity=critical`\n- Findings for one scan: add `scan_id={{scan_id}}`\n- Filter by tool: add `tool=nuclei`\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "Critical Findings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?severity=critical&limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "findings"],
+              "query": [
+                { "key": "severity", "value": "critical" },
+                { "key": "limit",    "value": "50" },
+                { "key": "offset",   "value": "0" }
+              ]
+            },
+            "description": "Shortcut — list only critical severity findings.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "Findings for a Scan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/findings?scan_id={{scan_id}}&limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "findings"],
+              "query": [
+                { "key": "scan_id", "value": "{{scan_id}}" },
+                { "key": "limit",   "value": "50" },
+                { "key": "offset",  "value": "0" }
+              ]
+            },
+            "description": "All findings for a specific scan.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "description": "Organise scans and assets into projects.",
+      "item": [
+        {
+          "name": "Create Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('project_id', res.data.id);",
+                  "  console.log('project_id set to:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Q3 2026 Assessment\",\n  \"description\": \"External attack surface assessment for Q3.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/v1/projects", "host": ["{{base_url}}"], "path": ["v1", "projects"] },
+            "description": "Create a project to group related scans and assets.\n\n**Fields:**\n- `name` *(required)*\n- `description` *(optional)*\n\nRequired scope: `scan:write`"
+          },
+          "response": []
+        },
+        {
+          "name": "List Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/projects?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "projects"],
+              "query": [
+                { "key": "limit",  "value": "20" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "List all your projects.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/v1/projects/{{project_id}}", "host": ["{{base_url}}"], "path": ["v1", "projects", "{{project_id}}"] },
+            "description": "Get a single project by ID.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assets",
+      "description": "Register targets as named assets for reuse across scans.",
+      "item": [
+        {
+          "name": "Register Asset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set('asset_id', res.data.id);",
+                  "  console.log('asset_id set to:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"example.com\",\n  \"asset_type\": \"domain\",\n  \"project_id\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{base_url}}/v1/assets", "host": ["{{base_url}}"], "path": ["v1", "assets"] },
+            "description": "Register a target as a named asset so you can reference it by `asset_id` in scans instead of typing the target string each time.\n\n**Fields:**\n- `value` *(required)* — the target value (e.g. `example.com`, `192.168.1.1`)\n- `asset_type` *(required)* — one of: `domain`, `ip`, `url`\n- `project_id` *(optional)* — associate with a project\n\nRequired scope: `scan:write`"
+          },
+          "response": []
+        },
+        {
+          "name": "List Assets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/assets?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["v1", "assets"],
+              "query": [
+                { "key": "project_id", "value": "", "description": "Filter by project", "disabled": true },
+                { "key": "limit",      "value": "20" },
+                { "key": "offset",     "value": "0" }
+              ]
+            },
+            "description": "List all registered assets.\n\nRequired scope: `scan:read`"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

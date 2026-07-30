@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ptk-enterprise-client-api-v2",
     "name": "Pentoolkit — Client API",
-    "description": "## Getting Started\n\n1. Set `base_url` to the endpoint your account manager provided\n2. Set `api_key` to your key (never commit to source control)\n3. Run **Check Key + Get Quota** first — confirms your key is active and shows your monthly limit\n4. Use **Submit Scan** → poll **Get Scan Status** until `status = completed` → download the report\n\n## Authentication\nEvery request requires:\n```\nAuthorization: Bearer <your_api_key>\n```\n\n## Response Envelope\nAll successful responses wrap data in:\n```json\n{ \"request_id\": \"abc123\", \"data\": {...} }\n```\nList endpoints also include:\n```json\n{ \"meta\": { \"total\": 42, \"page\": 1, \"limit\": 20, \"offset\": 0 } }\n```\n\n## Error Envelope\n```json\n{\n  \"error\": {\n    \"code\": \"SCAN_NOT_FOUND\",\n    \"message\": \"The requested scan was not found.\",\n    \"request_id\": \"abc123\"\n  }\n}\n```\n\n## Error Codes\n| Code | HTTP | When it happens |\n|---|---|---|\n| `INVALID_API_KEY` | 401 | Key not found or revoked |\n| `EXPIRED_API_KEY` | 401 | Key past its expiry date |\n| `INSUFFICIENT_SCOPE` | 403 | Key lacks the required scope for this action |\n| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests per minute |\n| `SCAN_QUOTA_EXCEEDED` | 429 | Monthly scan quota exhausted |\n| `SCAN_NOT_FOUND` | 404 | Scan ID unknown or belongs to another client |\n| `REPORT_NOT_READY` | 409 | Scan must reach `completed` before a report can be generated |\n| `PROJECT_NOT_FOUND` | 404 | Project not found or belongs to another client |\n| `ASSET_NOT_FOUND` | 404 | Asset not found |\n| `TARGET_INVALID` | 422 | Target string is empty or malformed |\n| `INTERNAL_ERROR` | 500 | Unexpected server error — contact support with the `request_id` |",
+    "description": "## Getting Started\n\n1. Set `base_url` to the endpoint your account manager provided\n2. Set `api_key` to your key (never commit to source control)\n3. Run **Check Key + Get Quota** first — confirms your key is active and shows your monthly limit\n4. Use **Submit Scan** → poll **Get Scan Status** until `status = completed` → download the report\n\n## Authentication\nEvery request requires:\n```\nAuthorization: Bearer <your_api_key>\n```\n\n## Response Envelope\nAll successful responses wrap data in:\n```json\n{ \"request_id\": \"abc123\", \"data\": {...} }\n```\nList endpoints also include:\n```json\n{ \"meta\": { \"total\": 42, \"page\": 1, \"limit\": 20, \"offset\": 0 } }\n```\n\n## Error Envelope\n```json\n{\n  \"error\": {\n    \"code\": \"SCAN_NOT_FOUND\",\n    \"message\": \"The requested scan was not found.\",\n    \"request_id\": \"abc123\"\n  }\n}\n```\n\n## Error Codes\n| Code | HTTP | When it happens |\n|---|---|---|\n| `INVALID_API_KEY` | 401 | Key not found or revoked |\n| `EXPIRED_API_KEY` | 401 | Key past its expiry date |\n| `INSUFFICIENT_SCOPE` | 403 | Key lacks the required scope for this action |\n| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests per minute |\n| `SCAN_QUOTA_EXCEEDED` | 429 | Monthly scan quota exhausted |\n| `SCAN_NOT_FOUND` | 404 | Scan ID unknown or belongs to another client |\n| `REPORT_NOT_READY` | 409 | Scan must reach `completed` before a report can be generated |\n| `TARGET_INVALID` | 422 | Target string is empty or malformed |\n| `INTERNAL_ERROR` | 500 | Unexpected server error — contact support with the `request_id` |",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -32,18 +32,6 @@
       "key": "scan_id",
       "value": "",
       "description": "Auto-populated by the Submit Scan test script.",
-      "type": "string"
-    },
-    {
-      "key": "project_id",
-      "value": "",
-      "description": "Auto-populated by the Create Project test script.",
-      "type": "string"
-    },
-    {
-      "key": "asset_id",
-      "value": "",
-      "description": "Auto-populated by the Register Asset test script.",
       "type": "string"
     }
   ],
@@ -137,7 +125,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"target\": \"https://example.com\",\n  \"idempotency_key\": \"my-deploy-20260729-001\"\n}",
+              "raw": "{\n  \"target\": \"https://example.com\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -145,7 +133,7 @@
               "host": ["{{base_url}}"],
               "path": ["v1", "scans"]
             },
-            "description": "Queue a new security scan against a target.\n\nRequired scope: `scan:write`\n\n**Request body:**\n- `target` *(required)* — URL, IP address, or hostname to scan (max 2048 chars)\n- `idempotency_key` *(optional, strongly recommended)* — unique string per scan job. Replaying the same key returns the existing scan as `200` instead of creating a duplicate. Use your deploy ID, commit SHA, or timestamp.\n- `project_id` *(optional)* — associate with a project\n- `asset_id` *(optional)* — associate with a registered asset\n\n**Returns:**\n- `201` — new scan queued\n- `200` — idempotency match, existing scan returned (no duplicate created)\n- `429 SCAN_QUOTA_EXCEEDED` — monthly quota exhausted"
+            "description": "Queue a new security scan against a target.\n\nRequired scope: `scan:write`\n\n**Request body:**\n- `target` *(required)* — URL, IP address, CIDR, or hostname to scan (max 2048 chars). Must be a fully qualified domain, IP, or URL — partial hostnames are rejected.\n\n**Returns:**\n- `201` — new scan queued\n- `429 SCAN_QUOTA_EXCEEDED` — monthly quota exhausted\n- `422 TARGET_INVALID` — target string is empty or not a valid domain/IP/URL"
           },
           "event": [
             {
@@ -153,17 +141,14 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Scan accepted (201 new or 200 replay)', function () {",
-                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "pm.test('Scan queued — status 201', function () {",
+                  "    pm.response.to.have.status(201);",
                   "});",
                   "var body = pm.response.json();",
                   "if (body.data && body.data.scan_id) {",
                   "    pm.collectionVariables.set('scan_id', body.data.scan_id);",
                   "    console.log('scan_id set to: ' + body.data.scan_id);",
                   "    console.log('Status: ' + body.data.status);",
-                  "    if (pm.response.code === 200) {",
-                  "        console.log('[IDEMPOTENCY] Existing scan returned — no duplicate created.');",
-                  "    }",
                   "}"
                 ]
               }
@@ -453,174 +438,8 @@
       ]
     },
     {
-      "name": "📁 Projects",
-      "description": "Projects are optional containers for organising scans (e.g. one project per engagement or application). Creating projects is not required — scans work fine without them.",
-      "item": [
-        {
-          "name": "Create Project",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Q3 2026 External Pentest\",\n  \"description\": \"External attack surface assessment for Q3 2026\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/v1/projects",
-              "host": ["{{base_url}}"],
-              "path": ["v1", "projects"]
-            },
-            "description": "Create a new project for grouping related scans.\n\nRequired scope: `scan:write`\n\n**Request body:**\n- `name` *(required)* — project name\n- `description` *(optional)* — free-text description\n\nReturns `201`. The `id` is auto-saved to `{{project_id}}`."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
-                  "var body = pm.response.json();",
-                  "if (body.data && body.data.id) {",
-                  "    pm.collectionVariables.set('project_id', body.data.id);",
-                  "    console.log('project_id set to: ' + body.data.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "List Projects",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/v1/projects?limit=20&offset=0",
-              "host": ["{{base_url}}"],
-              "path": ["v1", "projects"],
-              "query": [
-                { "key": "limit", "value": "20" },
-                { "key": "offset", "value": "0" }
-              ]
-            },
-            "description": "List all projects for your account, newest first.\n\nRequired scope: `scan:read`"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "Get Project",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/v1/projects/{{project_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["v1", "projects", "{{project_id}}"]
-            },
-            "description": "Retrieve a single project by ID.\n\nRequired scope: `scan:read`\n\nReturns `404 PROJECT_NOT_FOUND` if the project does not exist or belongs to a different client."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "🏷️ Assets",
-      "description": "Assets represent individual targets (domains, IPs, URLs) within a project. Registering assets before scanning lets you track findings per asset over time.",
-      "item": [
-        {
-          "name": "Register Asset",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"value\": \"app.example.com\",\n  \"asset_type\": \"domain\",\n  \"project_id\": \"{{project_id}}\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/v1/assets",
-              "host": ["{{base_url}}"],
-              "path": ["v1", "assets"]
-            },
-            "description": "Register a target asset.\n\nRequired scope: `scan:write`\n\n**Request body:**\n- `value` *(required)* — the target, e.g. `app.example.com` or `192.168.1.1`\n- `asset_type` *(required)* — one of: `domain`, `ip`, `url`, `cidr`\n- `project_id` *(optional)* — associate with a project (must belong to your account)\n\nAfter creating an asset, pass its `id` as `asset_id` in Submit Scan to link findings back to it."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
-                  "var body = pm.response.json();",
-                  "if (body.data && body.data.id) {",
-                  "    pm.collectionVariables.set('asset_id', body.data.id);",
-                  "    console.log('asset_id set to: ' + body.data.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "List Assets",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/v1/assets?limit=50&offset=0",
-              "host": ["{{base_url}}"],
-              "path": ["v1", "assets"],
-              "query": [
-                { "key": "limit", "value": "50" },
-                { "key": "offset", "value": "0" },
-                { "key": "project_id", "value": "{{project_id}}", "description": "Filter by project", "disabled": true }
-              ]
-            },
-            "description": "List all registered assets for your account.\n\nRequired scope: `scan:read`\n\nEnable the `project_id` param to filter to one project."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "response": []
-        }
-      ]
-    },
-    {
       "name": "⚡ Edge Cases",
-      "description": "Verify error handling, security boundaries, and idempotency. Run these before going live to confirm the API behaves correctly.",
+      "description": "Verify error handling and security boundaries. Run these before going live to confirm the API behaves correctly.",
       "item": [
         {
           "name": "Invalid API Key → 401",
@@ -677,48 +496,6 @@
                   "pm.test('Error block present', function () {",
                   "    pm.expect(pm.response.json()).to.have.property('error');",
                   "});"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "Idempotency Replay → 200 not 201",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"target\": \"https://example.com\",\n  \"idempotency_key\": \"my-deploy-20260729-001\"\n}",
-              "options": { "raw": { "language": "json" } }
-            },
-            "url": {
-              "raw": "{{base_url}}/v1/scans",
-              "host": ["{{base_url}}"],
-              "path": ["v1", "scans"]
-            },
-            "description": "Submit the same request a second time with the same `idempotency_key`.\n\nExpected: `200` (not `201`) — the existing scan is returned, no duplicate is created.\n\nRun **Submit Scan** first, then run this to confirm replay returns `200` with the same `scan_id`."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200 (idempotent replay, not 201)', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "var body = pm.response.json();",
-                  "var saved = pm.collectionVariables.get('scan_id');",
-                  "if (saved) {",
-                  "    pm.test('Returns same scan_id', function () {",
-                  "        pm.expect(body.data.scan_id).to.equal(saved);",
-                  "    });",
-                  "    console.log('Idempotency confirmed — same scan_id returned: ' + saved);",
-                  "} else {",
-                  "    console.log('scan_id variable not set — run Submit Scan first.');",
-                  "}"
                 ]
               }
             }
