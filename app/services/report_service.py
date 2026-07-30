@@ -18,11 +18,11 @@ _TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templ
 _jinja_env = Environment(loader=FileSystemLoader(_TEMPLATES_DIR), autoescape=True)
 
 
-def get_or_generate_report(scan_job_id: str, fmt: str, db: Session) -> dict:
+def get_or_generate_report(scan_job_id: str, fmt: str, db: Session) -> bytes:
     """
-    Returns presigned URL and metadata for a scan report.
+    Returns raw report bytes ready to stream directly to the client.
     Raises ValueError with error code on scan-not-found or not-ready.
-    Generates and caches on first request; subsequent requests presign the existing S3 key.
+    Generates and caches to S3 on first request; subsequent requests fetch from S3.
     """
     scan = db.get(ScanJob, scan_job_id)
     if scan is None:
@@ -30,7 +30,7 @@ def get_or_generate_report(scan_job_id: str, fmt: str, db: Session) -> dict:
     if scan.status != "completed":
         raise ValueError("REPORT_NOT_READY")
 
-    # Check for existing cached report
+    # Check for existing cached report in S3
     existing = db.execute(
         select(ScanReport).where(
             ScanReport.scan_job_id == scan_job_id,
@@ -39,14 +39,7 @@ def get_or_generate_report(scan_job_id: str, fmt: str, db: Session) -> dict:
     ).scalar_one_or_none()
 
     if existing:
-        url = get_presigned_url(existing.s3_key)
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=3600)
-        return {
-            "url": url,
-            "size_bytes": existing.size_bytes,
-            "generated_at": existing.generated_at.isoformat(),
-            "expires_at": expires_at.isoformat(),
-        }
+        return fetch_from_s3(existing.s3_key)
 
     # Generate fresh report
     html = render_html(scan, db)
@@ -56,21 +49,18 @@ def get_or_generate_report(scan_job_id: str, fmt: str, db: Session) -> dict:
         content = html.encode("utf-8") if isinstance(html, str) else html
 
     s3_key = upload_report(scan.client_id, scan_job_id, content, fmt)
-    size_bytes = len(content)
-    generated_at = datetime.now(timezone.utc)
 
     report_row = ScanReport(
         scan_job_id=scan_job_id,
         client_id=scan.client_id,
         format=fmt,
         s3_key=s3_key,
-        size_bytes=size_bytes,
-        generated_at=generated_at,
+        size_bytes=len(content),
+        generated_at=datetime.now(timezone.utc),
     )
     db.add(report_row)
     db.commit()
 
-    # Write usage event only on first-time generation (not re-downloads)
     write_usage_event(
         db,
         client_id=scan.client_id,
@@ -80,14 +70,7 @@ def get_or_generate_report(scan_job_id: str, fmt: str, db: Session) -> dict:
                   "finding_count": len(scan.findings)},
     )
 
-    url = get_presigned_url(s3_key)
-    expires_at = generated_at + timedelta(seconds=3600)
-    return {
-        "url": url,
-        "size_bytes": size_bytes,
-        "generated_at": generated_at.isoformat(),
-        "expires_at": expires_at.isoformat(),
-    }
+    return content
 
 
 def render_html(scan: ScanJob, db: Session) -> str:
@@ -183,10 +166,12 @@ def upload_report(client_id: str, scan_job_id: str, content: bytes | str, fmt: s
         raise RuntimeError("REPORT_UPLOAD_FAILED") from exc
 
 
-def get_presigned_url(s3_key: str, expires_seconds: int = 3600) -> str:
-    """Return presigned URL. Returns local path as-is in dev mode."""
+def fetch_from_s3(s3_key: str) -> bytes:
+    """Fetch report bytes directly from S3 using instance role credentials."""
     if s3_key.startswith("local:"):
-        return s3_key
+        local_path = s3_key[len("local:"):]
+        with open(local_path, "rb") as fh:
+            return fh.read()
 
     try:
         import boto3
@@ -195,11 +180,8 @@ def get_presigned_url(s3_key: str, expires_seconds: int = 3600) -> str:
             kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
             kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
         s3 = boto3.client("s3", **kwargs)
-        return s3.generate_presigned_url(
-            "get_object",
-            Params={"Bucket": settings.S3_BUCKET, "Key": s3_key},
-            ExpiresIn=expires_seconds,
-        )
+        response = s3.get_object(Bucket=settings.S3_BUCKET, Key=s3_key)
+        return response["Body"].read()
     except Exception as exc:
-        logger.error("Failed to generate presigned URL for %s: %s", s3_key, exc)
-        raise RuntimeError("REPORT_URL_FAILED") from exc
+        logger.error("Failed to fetch report from S3 %s: %s", s3_key, exc)
+        raise RuntimeError("REPORT_FETCH_FAILED") from exc

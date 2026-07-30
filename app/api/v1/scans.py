@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -167,7 +167,7 @@ async def get_scan_report(
         return error_response("SCAN_NOT_FOUND", request_id)
 
     try:
-        result = await asyncio.to_thread(
+        content = await asyncio.to_thread(
             report_service.get_or_generate_report, scan_id, format, db
         )
     except ValueError as exc:
@@ -180,11 +180,10 @@ async def get_scan_report(
         logger.error("Report generation runtime error for %s: %s", scan_id, exc)
         return error_response("INTERNAL_ERROR", request_id)
 
-    return {
-        "request_id": request_id,
-        "data": {
-            "scan_id": scan_id,
-            "format": format,
-            **result,
-        },
-    }
+    content_type = "application/pdf" if format == "pdf" else "text/html"
+    filename = f"report-{scan_id}.{format}"
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
