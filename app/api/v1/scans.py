@@ -174,7 +174,10 @@ async def get_scan_report(
         code = str(exc)
         if code in ("SCAN_NOT_FOUND", "REPORT_NOT_READY"):
             return error_response(code, request_id)
-        logger.error("Unexpected error generating report for %s: %s", scan_id, exc)
+        logger.error("Unexpected ValueError generating report for %s: %s", scan_id, exc)
+        return error_response("INTERNAL_ERROR", request_id)
+    except RuntimeError as exc:
+        logger.error("Report generation runtime error for %s: %s", scan_id, exc)
         return error_response("INTERNAL_ERROR", request_id)
 
     return {

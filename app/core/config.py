@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     BOOTSTRAP_SECRET: str = ""
 
     S3_BUCKET: str = "ptk-enterprise-artifacts"
-    S3_REGION: str = "us-east-1"
+    S3_REGION: str = "ap-south-1"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
 

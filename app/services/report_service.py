@@ -154,7 +154,7 @@ def upload_report(client_id: str, scan_job_id: str, content: bytes | str, fmt: s
 
     s3_key = f"reports/{client_id}/{scan_job_id}/report.{fmt}"
 
-    if not settings.S3_BUCKET or not settings.AWS_ACCESS_KEY_ID:
+    if not settings.S3_BUCKET:
         local_path = f"/tmp/{scan_job_id}.{fmt}"
         try:
             with open(local_path, "wb") as fh:
@@ -165,12 +165,11 @@ def upload_report(client_id: str, scan_job_id: str, content: bytes | str, fmt: s
 
     try:
         import boto3
-        s3 = boto3.client(
-            "s3",
-            region_name=settings.S3_REGION,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        )
+        kwargs = {"region_name": settings.S3_REGION}
+        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+            kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
+            kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
+        s3 = boto3.client("s3", **kwargs)
         content_type = "application/pdf" if fmt == "pdf" else "text/html"
         s3.put_object(
             Bucket=settings.S3_BUCKET,
@@ -180,11 +179,8 @@ def upload_report(client_id: str, scan_job_id: str, content: bytes | str, fmt: s
         )
         return s3_key
     except Exception as exc:
-        logger.warning("S3 upload failed, falling back to /tmp: %s", exc)
-        local_path = f"/tmp/{scan_job_id}.{fmt}"
-        with open(local_path, "wb") as fh:
-            fh.write(content)
-        return f"local:{local_path}"
+        logger.error("S3 upload failed for %s: %s", s3_key, exc)
+        raise RuntimeError("REPORT_UPLOAD_FAILED") from exc
 
 
 def get_presigned_url(s3_key: str, expires_seconds: int = 3600) -> str:
@@ -194,17 +190,16 @@ def get_presigned_url(s3_key: str, expires_seconds: int = 3600) -> str:
 
     try:
         import boto3
-        s3 = boto3.client(
-            "s3",
-            region_name=settings.S3_REGION,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        )
+        kwargs = {"region_name": settings.S3_REGION}
+        if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+            kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
+            kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
+        s3 = boto3.client("s3", **kwargs)
         return s3.generate_presigned_url(
             "get_object",
             Params={"Bucket": settings.S3_BUCKET, "Key": s3_key},
             ExpiresIn=expires_seconds,
         )
     except Exception as exc:
-        logger.warning("Failed to generate presigned URL for %s: %s", s3_key, exc)
-        return s3_key
+        logger.error("Failed to generate presigned URL for %s: %s", s3_key, exc)
+        raise RuntimeError("REPORT_URL_FAILED") from exc
