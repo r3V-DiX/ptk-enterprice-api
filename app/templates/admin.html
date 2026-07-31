@@ -324,6 +324,31 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 }
 .pagination-btns { display: flex; gap: 4px; }
 
+/* ─── Quota Progress Bar ────────────────────────────────── */
+.quota-bar-wrap { margin: 8px 0 4px; }
+.quota-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.quota-bar-meta .quota-used { font-weight: 600; color: var(--text); }
+.quota-track {
+  height: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.quota-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.quota-fill-ok     { background: var(--success); }
+.quota-fill-warn   { background: var(--warning); }
+.quota-fill-danger { background: var(--danger); }
+
 /* ─── Key Cards ─────────────────────────────────────────── */
 .keys-grid { display: flex; flex-direction: column; gap: 12px; }
 .key-card {
@@ -603,6 +628,35 @@ textarea { resize: vertical; min-height: 72px; }
 .mt-2 { margin-top: 8px; }
 .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
+/* ─── Audit action badges ────────────────────────────────── */
+.badge-action {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: var(--radius-badge);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.3px; white-space: nowrap;
+}
+.badge-key-created   { background: rgba(63,185,80,0.12);  color: var(--success); }
+.badge-key-updated   { background: rgba(88,166,255,0.12); color: var(--accent); }
+.badge-key-revoked   { background: rgba(248,81,73,0.12);  color: var(--danger); }
+.badge-client-created  { background: rgba(63,185,80,0.12);  color: var(--success); }
+.badge-client-updated  { background: rgba(88,166,255,0.12); color: var(--accent); }
+.badge-client-deleted  { background: rgba(248,81,73,0.12);  color: var(--danger); }
+.badge-action-default  { background: rgba(139,148,158,0.12); color: var(--muted); }
+
+/* ─── Metadata pill row ─────────────────────────────────── */
+.meta-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.meta-pill {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.meta-pill span.val { color: var(--text); margin-left: 3px; }
+
 @media (max-width: 700px) {
   .sidebar { display: none; }
   .stats-row { grid-template-columns: 1fr; }
@@ -642,6 +696,10 @@ textarea { resize: vertical; min-height: 72px; }
         <div class="nav-item active" id="nav-clients" onclick="App.showPage('clients')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-1 1a4 4 0 0 0-4 4v.5a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V13a4 4 0 0 0-4-4H7z"/></svg>
           Clients
+        </div>
+        <div class="nav-item" id="nav-audit" onclick="App.showPage('audit')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h8a1.5 1.5 0 0 0 1.5-1.5V5.5L8.5 3H1.5zM1 1.5a.5.5 0 0 1 .5-.5h6.793l2.207 2.207V14.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-13z"/><path d="M3 7h5v1H3V7zm0 2h5v1H3V9zm0 2h5v1H3v-1z"/><path d="M13.5 0a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.5-.5H7.207L5 2.707V4.5a.5.5 0 0 1-1 0V2.5a.5.5 0 0 1 .146-.354L6.5.146A.5.5 0 0 1 6.854 0H13.5z"/></svg>
+          Audit Log
         </div>
         <div class="nav-item" id="nav-settings" onclick="App.showPage('settings')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.474l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/></svg>
@@ -830,18 +888,41 @@ textarea { resize: vertical; min-height: 72px; }
     </div>
     <div class="modal-body">
       <input type="hidden" id="ek-id" />
+      <!-- Usage context banner -->
+      <div id="ek-usage-banner" style="display:none; background:rgba(88,166,255,0.06); border:1px solid rgba(88,166,255,0.15); border-radius:6px; padding:10px 12px; margin-bottom:16px; font-size:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="color:var(--muted);">Usage this month</span>
+          <span id="ek-usage-text" style="font-weight:600; color:var(--text);"></span>
+        </div>
+        <div class="quota-track">
+          <div class="quota-fill" id="ek-usage-fill" style="width:0%"></div>
+        </div>
+        <div style="margin-top:6px; color:var(--muted); font-size:11px;">Resets <span id="ek-usage-reset"></span></div>
+      </div>
       <div class="form-group">
         <label>Label</label>
         <input type="text" id="ek-label" placeholder="Production key" />
       </div>
       <div class="form-group">
         <label>Rate Limit (RPM)</label>
-        <input type="number" id="ek-rpm" min="1" />
+        <input type="number" id="ek-rpm" min="1" max="1000" />
+        <div class="form-hint">Requests per minute. Range: 1–1000.</div>
       </div>
       <div class="form-group">
         <label>Scan Quota / Month</label>
-        <input type="number" id="ek-quota" placeholder="Blank for unlimited" />
-        <div class="form-hint">Leave blank for unlimited. Enter -1 to explicitly clear.</div>
+        <input type="number" id="ek-quota" placeholder="Leave blank for unlimited" min="1" />
+        <div class="form-hint">Leave blank to set unlimited. Current usage is shown above.</div>
+      </div>
+      <div class="form-group">
+        <label>Expiry Date (optional)</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label class="toggle" style="flex-shrink:0;">
+            <input type="checkbox" id="ek-expiry-toggle" onchange="App.onEkExpiryToggle()" />
+            <span class="toggle-slider"></span>
+          </label>
+          <input type="date" id="ek-expiry-date" style="flex:1;" disabled />
+        </div>
+        <div class="form-hint">Toggle off to clear expiry (key never expires).</div>
       </div>
       <div class="form-group">
         <label>Status</label>
@@ -856,7 +937,7 @@ textarea { resize: vertical; min-height: 72px; }
       <div class="form-group">
         <label>CORS Origins</label>
         <textarea id="ek-cors" placeholder="https://app.example.com&#10;https://staging.example.com"></textarea>
-        <div class="form-hint">One origin per line. Leave blank to allow all origins.</div>
+        <div class="form-hint">One origin per line. Leave blank to allow all origins (unrestricted).</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -904,6 +985,13 @@ const App = (() => {
     keys: [],
     newKeyPlaintext: null,
     loading: false,
+    // Audit log state
+    auditLogs: [],
+    auditMeta: { total: 0, limit: 50 },
+    auditOffset: 0,
+    auditClientFilter: '',
+    auditActionFilter: '',
+    auditClientContext: null,  // set when viewing audit for a specific client
   };
 
   const BASE = () => window.location.origin;
@@ -1017,12 +1105,17 @@ const App = (() => {
   // ─── Nav ─────────────────────────────────────────────────────
   function showPage(name) {
     state.page = name;
-    ['clients','settings'].forEach(p => {
+    ['clients','audit','settings'].forEach(p => {
       document.getElementById(`nav-${p}`)?.classList.toggle('active', p === name);
     });
-    document.getElementById('topbar-title').textContent =
-      name === 'clients' ? 'Clients' : 'Settings';
+    const titles = { clients: 'Clients', audit: 'Audit Log', settings: 'Settings' };
+    document.getElementById('topbar-title').textContent = titles[name] || name;
     if (name === 'clients') renderClientsPage();
+    if (name === 'audit') {
+      state.auditClientContext = null;
+      state.auditOffset = 0;
+      renderAuditPage();
+    }
     if (name === 'settings') renderSettingsPage();
   }
 
@@ -1275,6 +1368,10 @@ const App = (() => {
         </div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-secondary" onclick="App.backToClients()">← Back</button>
+          <button class="btn btn-secondary" onclick="App.showClientAudit()">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h8a1.5 1.5 0 0 0 1.5-1.5V5.5L8.5 3H1.5zM1 1.5a.5.5 0 0 1 .5-.5h6.793l2.207 2.207V14.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-13z"/><path d="M3 7h5v1H3V7zm0 2h5v1H3V9zm0 2h5v1H3v-1z"/></svg>
+            Audit Log
+          </button>
           <button class="btn btn-primary" onclick="App.openNewKeyModal()">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/></svg>
             Issue New Key
@@ -1295,13 +1392,35 @@ const App = (() => {
       ? '<span class="badge badge-active">Active</span>'
       : '<span class="badge badge-revoked">Revoked</span>';
     const scopes = (k.scopes || []).map(s => `<span class="badge-scope">${escHtml(s)}</span>`).join(' ');
-    const quota = k.scan_quota_per_month == null || k.scan_quota_per_month < 0
-      ? 'Unlimited'
-      : `${k.current_month_scans ?? 0} / ${k.scan_quota_per_month} this month`;
-    const resets = k.quota_resets_at ? ` · resets ${new Date(k.quota_resets_at).toLocaleDateString('en', {month:'short', day:'numeric'})}` : '';
+
+    // Quota progress bar
+    const used = k.current_month_scans ?? 0;
+    const limit = k.scan_quota_per_month;
+    let quotaHtml;
+    if (limit == null || limit < 0) {
+      quotaHtml = `<div class="quota-bar-wrap">
+        <div class="quota-bar-meta">
+          <span>Quota</span>
+          <span class="quota-used">Unlimited</span>
+        </div>
+      </div>`;
+    } else {
+      const pct = Math.min(100, Math.round((used / limit) * 100));
+      const fillClass = pct >= 90 ? 'quota-fill-danger' : pct >= 70 ? 'quota-fill-warn' : 'quota-fill-ok';
+      const resetStr = k.quota_resets_at
+        ? `Resets ${new Date(k.quota_resets_at).toLocaleDateString('en', {month:'short', day:'numeric'})}`
+        : '';
+      quotaHtml = `<div class="quota-bar-wrap">
+        <div class="quota-bar-meta">
+          <span>Quota · ${resetStr}</span>
+          <span class="quota-used">${used} <span style="font-weight:400;color:var(--muted);">/ ${limit}</span></span>
+        </div>
+        <div class="quota-track"><div class="quota-fill ${fillClass}" style="width:${pct}%"></div></div>
+      </div>`;
+    }
+
     const lastUsed = k.last_used_at ? `Last used ${timeAgo(k.last_used_at)}` : 'Never used';
     const created = k.created_at ? `Issued ${new Date(k.created_at).toLocaleDateString()}` : '';
-    const expires = k.expires_at ? ` · Expires ${new Date(k.expires_at).toLocaleDateString()}` : '';
     const corsOrigins = k.cors_origins && k.cors_origins.length > 0
       ? k.cors_origins.map(o => `<span class="cors-tag">${escHtml(o)}</span>`).join(' ')
       : '<span class="text-muted" style="font-size:11px;">All origins</span>';
@@ -1314,11 +1433,8 @@ const App = (() => {
           ${badge}
         </div>
       </div>
-      <div class="key-meta-row">
-        <span class="key-meta-item">
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg>
-          ${escHtml(quota)}${resets}
-        </span>
+      ${quotaHtml}
+      <div class="key-meta-row" style="margin-top:6px;">
         <span class="key-meta-item" style="color:var(--muted);">
           <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M11.251.068a.5.5 0 0 1 .227.58L9.677 6.5H13a.5.5 0 0 1 .364.843l-8 8.5a.5.5 0 0 1-.842-.49L6.323 9.5H3a.5.5 0 0 1-.364-.843l8-8.5a.5.5 0 0 1 .615-.09z"/></svg>
           ${k.rate_limit_rpm || '—'} RPM
@@ -1328,7 +1444,7 @@ const App = (() => {
       ${scopes ? `<div class="scopes-row">${scopes}</div>` : ''}
       <div class="cors-row">${corsOrigins}</div>
       <div class="key-footer">
-        <span>${lastUsed} · ${created}${expires}</span>
+        <span>${lastUsed} · ${created}</span>
         <div class="key-footer-actions">
           <button class="btn btn-secondary btn-sm" onclick="App.openEditKeyModal('${k.id}')">Edit</button>
           ${k.is_active
@@ -1349,7 +1465,12 @@ const App = (() => {
     state.currentClient = null;
     state.keys = [];
     state.newKeyPlaintext = null;
+    state.auditClientContext = null;
+    state.auditClientFilter = '';
     document.getElementById('topbar-title').textContent = 'Clients';
+    ['clients','audit','settings'].forEach(p => {
+      document.getElementById(`nav-${p}`)?.classList.toggle('active', p === 'clients');
+    });
     renderClientsPage();
   }
 
@@ -1401,40 +1522,134 @@ const App = (() => {
   }
 
   // ─── Edit Key modal ───────────────────────────────────────────
+  function onEkExpiryToggle() {
+    const on = document.getElementById('ek-expiry-toggle').checked;
+    document.getElementById('ek-expiry-date').disabled = !on;
+    if (!on) document.getElementById('ek-expiry-date').value = '';
+  }
+
   function openEditKeyModal(keyId) {
     const k = state.keys.find(x => x.id === keyId);
     if (!k) return;
+
     document.getElementById('ek-id').value = k.id;
     document.getElementById('ek-label').value = k.label || '';
     document.getElementById('ek-rpm').value = k.rate_limit_rpm || '';
-    document.getElementById('ek-quota').value = k.scan_quota_per_month != null ? k.scan_quota_per_month : '';
+
+    // Quota — show blank if unlimited, actual value if set
+    document.getElementById('ek-quota').value =
+      k.scan_quota_per_month != null && k.scan_quota_per_month > 0
+        ? k.scan_quota_per_month
+        : '';
+
+    // Active toggle
     const activeChk = document.getElementById('ek-active');
     activeChk.checked = k.is_active;
     document.getElementById('ek-active-label').textContent = k.is_active ? 'Active' : 'Inactive';
     activeChk.onchange = () => {
       document.getElementById('ek-active-label').textContent = activeChk.checked ? 'Active' : 'Inactive';
     };
+
+    // Expiry toggle + date
+    const hasExpiry = !!k.expires_at;
+    const expiryToggle = document.getElementById('ek-expiry-toggle');
+    const expiryDate = document.getElementById('ek-expiry-date');
+    expiryToggle.checked = hasExpiry;
+    expiryDate.disabled = !hasExpiry;
+    expiryDate.value = hasExpiry ? k.expires_at.slice(0, 10) : '';
+
+    // CORS
     document.getElementById('ek-cors').value = (k.cors_origins || []).join('\n');
+
+    // Usage context banner
+    const banner = document.getElementById('ek-usage-banner');
+    if (k.scan_quota_per_month != null && k.scan_quota_per_month > 0) {
+      const used = k.current_month_scans ?? 0;
+      const limit = k.scan_quota_per_month;
+      const pct = Math.min(100, Math.round((used / limit) * 100));
+      const fillClass = pct >= 90 ? 'quota-fill-danger' : pct >= 70 ? 'quota-fill-warn' : 'quota-fill-ok';
+      document.getElementById('ek-usage-text').textContent = `${used} / ${limit} scans`;
+      const fill = document.getElementById('ek-usage-fill');
+      fill.style.width = pct + '%';
+      fill.className = `quota-fill ${fillClass}`;
+      document.getElementById('ek-usage-reset').textContent = k.quota_resets_at
+        ? new Date(k.quota_resets_at).toLocaleDateString('en', {month:'long', day:'numeric', year:'numeric'})
+        : '—';
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+
     openModal('modal-edit-key');
   }
 
   async function submitEditKey() {
     const id = document.getElementById('ek-id').value;
+    const k = state.keys.find(x => x.id === id);
+    if (!k) return;
+
+    const labelVal = document.getElementById('ek-label').value.trim() || null;
+    const rpmRaw = document.getElementById('ek-rpm').value.trim();
     const quotaRaw = document.getElementById('ek-quota').value.trim();
     const corsRaw = document.getElementById('ek-cors').value.trim();
-    const cors_origins = corsRaw ? corsRaw.split('\n').map(l => l.trim()).filter(Boolean) : null;
-    const body = {
-      label: document.getElementById('ek-label').value.trim() || null,
-      rate_limit_rpm: parseInt(document.getElementById('ek-rpm').value) || undefined,
-      scan_quota_per_month: quotaRaw === '' ? null : parseInt(quotaRaw),
-      is_active: document.getElementById('ek-active').checked,
-      cors_origins,
-    };
+    const isActive = document.getElementById('ek-active').checked;
+    const expiryOn = document.getElementById('ek-expiry-toggle').checked;
+    const expiryDateVal = document.getElementById('ek-expiry-date').value;
+
+    // Determine quota: blank → null (unlimited), number → that number
+    const newQuota = quotaRaw === '' ? null : parseInt(quotaRaw);
+    // Backend uses -1 as the "set to unlimited" sentinel when we want to explicitly clear
+    const quotaToSend = newQuota === null ? -1 : newQuota;
+
+    const corsOrigins = corsRaw
+      ? corsRaw.split('\n').map(l => l.trim()).filter(Boolean)
+      : [];  // [] = clear restrictions
+
+    const expiresAt = expiryOn && expiryDateVal
+      ? new Date(expiryDateVal).toISOString()
+      : null;
+
+    // Build only the fields that differ from current values
+    const body = {};
+    if (labelVal !== (k.label || null)) body.label = labelVal;
+    if (rpmRaw && parseInt(rpmRaw) !== k.rate_limit_rpm) body.rate_limit_rpm = parseInt(rpmRaw);
+
+    const currentQuota = k.scan_quota_per_month;
+    if (newQuota !== currentQuota) body.scan_quota_per_month = quotaToSend;
+
+    if (isActive !== k.is_active) body.is_active = isActive;
+
+    const currentCors = JSON.stringify((k.cors_origins || []).slice().sort());
+    const newCors = JSON.stringify(corsOrigins.slice().sort());
+    if (newCors !== currentCors) body.cors_origins = corsOrigins;
+
+    const currentExpiry = k.expires_at ? k.expires_at.slice(0, 10) : null;
+    const newExpiry = expiryOn && expiryDateVal ? expiryDateVal : null;
+    if (newExpiry !== currentExpiry) body.expires_at = expiresAt;
+
+    if (Object.keys(body).length === 0) {
+      toast('No changes to save.', 'error');
+      return;
+    }
+
+    // Build a human-readable summary of what changed
+    const changeSummary = [];
+    if ('scan_quota_per_month' in body) {
+      const prev = k.scan_quota_per_month != null ? k.scan_quota_per_month : '∞';
+      const next = newQuota != null ? newQuota : '∞';
+      changeSummary.push(`Quota ${prev} → ${next}`);
+    }
+    if ('rate_limit_rpm' in body) changeSummary.push(`RPM ${k.rate_limit_rpm} → ${body.rate_limit_rpm}`);
+    if ('is_active' in body) changeSummary.push(body.is_active ? 'Activated' : 'Deactivated');
+    if ('cors_origins' in body) changeSummary.push('CORS origins updated');
+    if ('expires_at' in body) changeSummary.push(body.expires_at ? 'Expiry set' : 'Expiry cleared');
+    if ('label' in body) changeSummary.push('Label updated');
+
     setLoading('ek-submit', true);
     try {
       await api.patch(`/v1/admin/keys/${id}`, body);
       closeModal('modal-edit-key');
-      toast('Key updated.');
+      toast(`Key updated — ${changeSummary.join(', ')}`);
       const keysRes = await api.get(`/v1/admin/clients/${state.currentClient.id}/keys`);
       state.keys = keysRes.data || [];
       renderKeysPage();
@@ -1467,6 +1682,175 @@ const App = (() => {
     } finally {
       setLoading('rk-submit', false);
     }
+  }
+
+  // ─── Audit Log page ──────────────────────────────────────────
+
+  function showClientAudit() {
+    // Navigate to audit tab pre-filtered to the current client
+    state.auditClientContext = state.currentClient;
+    state.auditClientFilter = state.currentClient.id;
+    state.auditOffset = 0;
+    state.page = 'audit';
+    ['clients','audit','settings'].forEach(p => {
+      document.getElementById(`nav-${p}`)?.classList.toggle('active', p === 'audit');
+    });
+    document.getElementById('topbar-title').textContent = 'Audit Log';
+    renderAuditPage();
+  }
+
+  async function renderAuditPage() {
+    const content = document.getElementById('main-content');
+    content.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div></div>`;
+    try {
+      const clientId = state.auditClientFilter;
+      const action = state.auditActionFilter;
+      let url = clientId
+        ? `/v1/admin/clients/${clientId}/audit-logs?limit=${state.auditMeta.limit}&offset=${state.auditOffset}`
+        : `/v1/admin/audit-logs?limit=${state.auditMeta.limit}&offset=${state.auditOffset}`;
+      if (!clientId && action) url += `&action=${encodeURIComponent(action)}`;
+      if (clientId && action) url += `&action=${encodeURIComponent(action)}`;
+
+      const res = await api.get(url);
+      state.auditLogs = res.data || [];
+      state.auditMeta = { ...state.auditMeta, total: res.meta.total };
+      content.innerHTML = buildAuditPage();
+    } catch(e) {
+      content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠</div><div class="empty-state-title">Failed to load</div><div class="empty-state-sub">${e.message}</div></div>`;
+    }
+  }
+
+  function buildAuditPage() {
+    const ctx = state.auditClientContext;
+    const breadcrumb = ctx ? `
+      <div class="breadcrumb" style="margin-bottom:16px;">
+        <span class="crumb-link" onclick="App.backToClients()">Clients</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="crumb-link" onclick="App.showKeys('${ctx.id}')">${escHtml(ctx.company_name)}</span>
+        <span class="breadcrumb-sep">/</span>
+        <span>Audit Log</span>
+      </div>` : '';
+
+    const actionOptions = ['','key_created','key_updated','key_revoked','client_created','client_updated','client_deleted']
+      .map(a => `<option value="${a}" ${state.auditActionFilter === a ? 'selected' : ''}>${a || 'All actions'}</option>`)
+      .join('');
+
+    const filters = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        ${!ctx ? `<input type="text" id="audit-client-filter" placeholder="Filter by client ID…"
+            value="${escHtml(state.auditClientFilter)}"
+            style="width:260px;"
+            onchange="App.setAuditClientFilter(this.value)" />` : ''}
+        <select id="audit-action-filter" style="width:180px;" onchange="App.setAuditActionFilter(this.value)">
+          ${actionOptions}
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="App.resetAuditFilters()">Clear filters</button>
+      </div>`;
+
+    const total = state.auditMeta.total;
+    const limit = state.auditMeta.limit;
+    const offset = state.auditOffset;
+
+    const rows = state.auditLogs.length === 0
+      ? `<div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-title">No audit events</div>
+          <div class="empty-state-sub">No activity matches the current filters.</div>
+        </div>`
+      : `<table>
+          <thead><tr>
+            <th>Action</th>
+            <th>Key / Target</th>
+            <th>Changes</th>
+            <th>IP</th>
+            <th>Time</th>
+          </tr></thead>
+          <tbody>${state.auditLogs.map(a => auditRow(a)).join('')}</tbody>
+        </table>`;
+
+    return `
+      ${breadcrumb}
+      <div class="page-header">
+        <div class="page-title">${ctx ? `${escHtml(ctx.company_name)} — Audit Log` : 'Audit Log'}</div>
+      </div>
+      ${filters}
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">${total} event${total !== 1 ? 's' : ''}</div>
+        </div>
+        ${rows}
+        <div class="pagination">
+          <span>Showing ${offset + 1}–${Math.min(offset + limit, total)} of ${total}</span>
+          <div class="pagination-btns">
+            <button class="btn btn-secondary btn-sm" ${offset === 0 ? 'disabled' : ''} onclick="App.auditPage(-1)">← Prev</button>
+            <button class="btn btn-secondary btn-sm" ${offset + limit >= total ? 'disabled' : ''} onclick="App.auditPage(1)">Next →</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function auditRow(a) {
+    const actionCls = {
+      key_created: 'badge-key-created',
+      key_updated: 'badge-key-updated',
+      key_revoked: 'badge-key-revoked',
+      client_created: 'badge-client-created',
+      client_updated: 'badge-client-updated',
+      client_deleted: 'badge-client-deleted',
+    }[a.action] || 'badge-action-default';
+
+    const target = a.target_id
+      ? `<span class="text-mono" style="font-size:11px;">${escHtml(a.target_id.slice(0, 8))}…</span>`
+      : '—';
+
+    // Render metadata as pill list — key=value pairs, skip null values
+    const meta = a.metadata || {};
+    const pills = Object.entries(meta)
+      .filter(([, v]) => v !== null && v !== undefined)
+      .map(([k, v]) => {
+        const val = typeof v === 'object' ? JSON.stringify(v) : String(v);
+        return `<span class="meta-pill">${escHtml(k)}<span class="val">${escHtml(val)}</span></span>`;
+      }).join('');
+    const metaHtml = pills
+      ? `<div class="meta-pills">${pills}</div>`
+      : '<span class="text-muted" style="font-size:11px;">—</span>';
+
+    const time = a.created_at
+      ? `<span title="${escHtml(a.created_at)}">${timeAgo(a.created_at)}</span>`
+      : '—';
+
+    return `<tr>
+      <td><span class="badge-action ${actionCls}">${escHtml(a.action)}</span></td>
+      <td>${target}</td>
+      <td>${metaHtml}</td>
+      <td class="text-muted" style="font-size:11px;">${escHtml(a.ip_address || '—')}</td>
+      <td class="text-muted" style="font-size:12px;">${time}</td>
+    </tr>`;
+  }
+
+  function setAuditClientFilter(val) {
+    state.auditClientFilter = val.trim();
+    state.auditOffset = 0;
+    renderAuditPage();
+  }
+
+  function setAuditActionFilter(val) {
+    state.auditActionFilter = val;
+    state.auditOffset = 0;
+    renderAuditPage();
+  }
+
+  function resetAuditFilters() {
+    state.auditClientFilter = state.auditClientContext ? state.auditClientContext.id : '';
+    state.auditActionFilter = '';
+    state.auditOffset = 0;
+    renderAuditPage();
+  }
+
+  function auditPage(dir) {
+    const limit = state.auditMeta.limit;
+    state.auditOffset = Math.max(0, state.auditOffset + dir * limit);
+    renderAuditPage();
   }
 
   // ─── Settings page ────────────────────────────────────────────
@@ -1545,17 +1929,18 @@ const App = (() => {
   // Public API
   return {
     login, signout,
-    showPage, showKeys, backToClients,
+    showPage, showKeys, backToClients, showClientAudit,
     openNewClientModal, submitNewClient,
     openEditClientModal, submitEditClient,
     openDeleteClientModal, submitDeleteClient,
     openNewKeyModal, submitNewKey,
-    openEditKeyModal, submitEditKey,
+    openEditKeyModal, submitEditKey, onEkExpiryToggle,
     openRevokeKeyModal, submitRevokeKey,
     openModal, closeModal,
     clientsPage,
     copyKey,
     updateKey,
+    setAuditClientFilter, setAuditActionFilter, resetAuditFilters, auditPage,
     init,
   };
 })();

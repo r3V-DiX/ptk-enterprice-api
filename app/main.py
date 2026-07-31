@@ -1,11 +1,11 @@
 import logging
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.request_id import RequestIDMiddleware
 from app.core.auth import AuthError, ScopeError
 from app.middleware.api_logger import ApiLoggerMiddleware
+from app.middleware.cors import DynamicCORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,14 +19,7 @@ app = FastAPI(
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(ApiLoggerMiddleware)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS + settings.ADMIN_PORTAL_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(DynamicCORSMiddleware)
 
 
 @app.exception_handler(AuthError)

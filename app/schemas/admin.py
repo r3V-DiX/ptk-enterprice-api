@@ -80,6 +80,7 @@ class PatchApiKeyRequest(BaseModel):
     rate_limit_rpm: int | None = None  # validator: 1-1000 if set
     is_active: bool | None = None
     cors_origins: list[str] | None = None  # [] means "clear all restrictions"
+    expires_at: datetime | None = None   # None means "clear expiry (no expiry)"
 
     @field_validator("rate_limit_rpm")
     @classmethod

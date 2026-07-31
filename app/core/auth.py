@@ -67,16 +67,18 @@ async def get_api_key(request: Request, db: Session = Depends(get_db)) -> ApiKey
         raise AuthError(error_response("RATE_LIMIT_EXCEEDED", request_id))
 
     # Per-key CORS enforcement
+    # If cors_origins is set, the request MUST come from one of those origins.
+    # Requests with no Origin header (curl, Postman, server-to-server) are also blocked
+    # because the key is intended for browser-side use from a specific domain only.
     if api_key.cors_origins:
-        origin = request.headers.get("origin") or request.headers.get("Origin", "")
-        if origin:
-            allowed = [o.rstrip("/") for o in api_key.cors_origins]
-            if origin.rstrip("/") not in allowed:
-                logger.warning(
-                    "CORS origin rejected key_prefix=%s origin=%s",
-                    api_key.key_prefix, origin,
-                )
-                raise AuthError(error_response("CORS_ORIGIN_NOT_ALLOWED", request_id))
+        origin = (request.headers.get("origin") or request.headers.get("Origin", "")).rstrip("/")
+        allowed = [o.rstrip("/") for o in api_key.cors_origins]
+        if not origin or origin not in allowed:
+            logger.warning(
+                "CORS origin rejected key_prefix=%s origin=%r (allowed=%s)",
+                api_key.key_prefix, origin, allowed,
+            )
+            raise AuthError(error_response("CORS_ORIGIN_NOT_ALLOWED", request_id))
 
     return api_key
 

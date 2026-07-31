@@ -8,9 +8,11 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 
+from fastapi import Query
 from app.core.database import get_db
 from app.core.errors import error_response, get_request_id
 from app.models.api_key import ApiKey
+from app.models.audit_log import AuditLog
 from app.models.client import Client
 from app.models.scan_job import ScanJob
 from app.schemas.admin import (
@@ -193,6 +195,7 @@ async def patch_api_key(
         rate_limit_rpm=body.rate_limit_rpm if "rate_limit_rpm" in provided else _UNSET,
         is_active=body.is_active if "is_active" in provided else _UNSET,
         cors_origins=body.cors_origins if "cors_origins" in provided else _UNSET,
+        expires_at=body.expires_at if "expires_at" in provided else _UNSET,
     )
 
     if updated is None:
@@ -266,3 +269,91 @@ async def revoke_key(
     )
 
     return Response(status_code=204)
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/admin/audit-logs
+# GET /v1/admin/clients/{client_id}/audit-logs
+# ---------------------------------------------------------------------------
+
+@router.get("/admin/audit-logs")
+async def list_audit_logs_global(
+    request: Request,
+    db: Session = Depends(get_db),
+    client_id: str | None = Query(None),
+    action: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """List audit log entries across all clients, filterable by client_id and action."""
+    import asyncio
+    request_id = get_request_id(request)
+    ok, _ = await _admin_auth(request, db)
+    if not ok:
+        return error_response("ADMIN_AUTH_REQUIRED", request_id)
+
+    def _query():
+        stmt = select(AuditLog)
+        if client_id:
+            stmt = stmt.where(AuditLog.client_id == client_id)
+        if action:
+            stmt = stmt.where(AuditLog.action == action)
+        total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+        rows = db.execute(
+            stmt.order_by(AuditLog.created_at.desc()).limit(limit).offset(offset)
+        ).scalars().all()
+        return total, rows
+
+    total, rows = await asyncio.to_thread(_query)
+    items = [_audit_row(a) for a in rows]
+    return {"request_id": request_id, "data": items, "meta": {"total": total, "limit": limit, "offset": offset}}
+
+
+@router.get("/admin/clients/{client_id}/audit-logs")
+async def list_client_audit_logs(
+    client_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    action: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """List audit log entries for a specific client."""
+    import asyncio
+    request_id = get_request_id(request)
+    ok, _ = await _admin_auth(request, db)
+    if not ok:
+        return error_response("ADMIN_AUTH_REQUIRED", request_id)
+
+    client = db.get(Client, client_id)
+    if client is None:
+        return error_response("CLIENT_NOT_FOUND", request_id)
+
+    def _query():
+        stmt = select(AuditLog).where(AuditLog.client_id == client_id)
+        if action:
+            stmt = stmt.where(AuditLog.action == action)
+        total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+        rows = db.execute(
+            stmt.order_by(AuditLog.created_at.desc()).limit(limit).offset(offset)
+        ).scalars().all()
+        return total, rows
+
+    total, rows = await asyncio.to_thread(_query)
+    items = [_audit_row(a) for a in rows]
+    return {"request_id": request_id, "data": items, "meta": {"total": total, "limit": limit, "offset": offset}}
+
+
+def _audit_row(a: AuditLog) -> dict:
+    return {
+        "id": a.id,
+        "client_id": a.client_id,
+        "api_key_id": a.api_key_id,
+        "actor": a.actor,
+        "action": a.action,
+        "target_type": a.target_type,
+        "target_id": a.target_id,
+        "metadata": a.metadata_json,
+        "ip_address": a.ip_address,
+        "created_at": a.created_at.isoformat(),
+    }

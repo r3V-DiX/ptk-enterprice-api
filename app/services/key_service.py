@@ -119,6 +119,7 @@ def update_api_key(
     rate_limit_rpm=_UNSET,
     is_active=_UNSET,
     cors_origins=_UNSET,
+    expires_at=_UNSET,
 ) -> ApiKey | None:
     """
     Partially update an API key. Uses _UNSET sentinel to distinguish
@@ -166,6 +167,10 @@ def update_api_key(
             # [] means "clear all restrictions" — store as NULL
             api_key.cors_origins = cors_origins if cors_origins else None
             changed["cors_origins"] = api_key.cors_origins
+
+        if expires_at is not _UNSET:
+            api_key.expires_at = expires_at
+            changed["expires_at"] = expires_at.isoformat() if expires_at else None
 
         db.commit()
         db.refresh(api_key)
