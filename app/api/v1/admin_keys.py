@@ -191,6 +191,7 @@ async def patch_api_key(
         key_id=key_id,
         client_id=None,  # admin can patch any key
         label=body.label if "label" in provided else _UNSET,
+        scopes=body.scopes if "scopes" in provided else _UNSET,
         scan_quota_per_month=body.scan_quota_per_month if "scan_quota_per_month" in provided else _UNSET,
         rate_limit_rpm=body.rate_limit_rpm if "rate_limit_rpm" in provided else _UNSET,
         is_active=body.is_active if "is_active" in provided else _UNSET,

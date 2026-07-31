@@ -115,6 +115,7 @@ def update_api_key(
     key_id: str,
     client_id: str | None = None,
     label=_UNSET,
+    scopes=_UNSET,
     scan_quota_per_month=_UNSET,
     rate_limit_rpm=_UNSET,
     is_active=_UNSET,
@@ -145,6 +146,10 @@ def update_api_key(
         if label is not _UNSET:
             api_key.label = label
             changed["label"] = label
+
+        if scopes is not _UNSET:
+            api_key.scopes = scopes
+            changed["scopes"] = scopes
 
         if scan_quota_per_month is not _UNSET:
             # -1 is the sentinel for "set to unlimited (NULL)"

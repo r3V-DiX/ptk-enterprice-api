@@ -76,11 +76,25 @@ class CreateApiKeyRequest(BaseModel):
 
 class PatchApiKeyRequest(BaseModel):
     label: str | None = None          # if provided, update it
+    scopes: list[str] | None = None   # if provided, replace scopes
     scan_quota_per_month: int | None = None  # -1 means "set to unlimited (NULL)"
     rate_limit_rpm: int | None = None  # validator: 1-1000 if set
     is_active: bool | None = None
     cors_origins: list[str] | None = None  # [] means "clear all restrictions"
     expires_at: datetime | None = None   # None means "clear expiry (no expiry)"
+
+    @field_validator("scopes")
+    @classmethod
+    def validate_scopes(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        allowed = {"scan:write", "scan:read", "usage:read", "admin"}
+        invalid = set(v) - allowed
+        if invalid:
+            raise ValueError(f"Unknown scopes: {invalid}")
+        if not v:
+            raise ValueError("At least one scope is required")
+        return v
 
     @field_validator("rate_limit_rpm")
     @classmethod
